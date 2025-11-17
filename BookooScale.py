@@ -12,15 +12,10 @@ class BookooScale:
         if self.address is None:
             await self.discover_device()
 
-        if self.address is None:
-            print("Failed to connect!")
-            return False
-
         self.client = BleakClient(self.address)
-        await self.client.connect()
-        success = self.client.is_connected
-        print(f'Successfully connected to {self.client.name}!')
-        await self.client.disconnect()
+        success = await self.connect()
+        if success:
+            print(f'Successfully connected to {self.client.name}!')
         return success
 
     async def discover_device(self):
@@ -38,6 +33,19 @@ class BookooScale:
             print("Device Found!")
             self.address = bookoo_devices[0].address
             return True
+
+    async def connect(self):
+        print("Connecting...")
+        await self.client.connect()
+        return self.connected()
+
+    def connected(self):
+        return self.client.is_connected
+
+    async def disconnect(self):
+        print("Disconnecting...")
+        await self.client.disconnect()
+        return not self.connected()
 
     def _is_bookoo_device(self, device):
         if device.name is None:
