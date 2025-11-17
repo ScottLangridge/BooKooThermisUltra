@@ -1,14 +1,17 @@
 import asyncio
+import time
 
 from BookooScale import BookooScale
 
 
 async def main():
     scale = BookooScale()
+    assert await scale.establish_connection()
 
     try:
-        assert await scale.establish_connection()
-        await scale.disconnect()
+        while True:
+            print(scale.weight)
+            await asyncio.sleep(0.1)
     except Exception as e:
         # Disconnect gracefully in case of any issues
         print("Exception: " + str(e))
