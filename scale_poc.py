@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 from BookooScale import BookooScale
 
@@ -18,11 +17,13 @@ async def main():
         await asyncio.sleep(3)
         await scale.send_timer_reset()
 
-        # Loop weight
-        while True:
-            print(str(scale.weight) + "g")
+        # Loop weight for ten seconds
+        for i in range(100):
+            print(str(scale.read_weight()) + "g")
             await asyncio.sleep(0.1)
 
+        # Disconnect
+        await scale.disconnect()
 
     except Exception as e:
         # Disconnect gracefully in case of any issues

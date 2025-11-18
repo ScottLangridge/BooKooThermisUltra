@@ -13,28 +13,77 @@ TARE_AND_TIMER_START_PACKET = bytearray([0x03, 0x0A, 0x07, 0x00, 0x00, 0x00])
 
 
 class BookooScale:
-    def __init__(self, address=None):
-        self.address = address
-        self.client = None
+    def __init__(self):
+        self._address = None
+        self._client = None
 
-        self.weight = None
+        self._weight = None
+        self._time = None  # todo implement timer tracking
 
+    # ----- CONNECTIVITY -----
     async def establish_connection(self):
         print("Establishing connection...")
 
-        if self.address is None:
-            await self.discover_device()
-        if self.address is None:
+        # Find device if not already located
+        if self._address is None:
+            await self._discover_device()
+
+        # If not found, fail
+        if self._address is None:
             print("Failed to establish connection.")
             return False
 
-        self.client = BleakClient(self.address)
-        success = await self.connect()
+        # Connect
+        self._client = BleakClient(self._address)
+        success = await self._connect()
         if success:
-            print(f'Successfully connected to {self.client.name}!')
+            print(f'Successfully connected to {self._client.name}!')
         return success
 
-    async def discover_device(self):
+    def is_connected(self):
+        if not self._client:
+            return False
+        return self._client.is_connected
+
+    async def disconnect(self):
+        if self.is_connected():
+            print("Disconnecting...")
+            await self._client.disconnect()
+            self._weight = None
+            return not self.is_connected()
+        else:
+            print("No device connected to disconnect from.")
+
+    # ----- READ COMMANDS -----
+    def read_weight(self):
+        return self._weight
+
+    def read_time(self):
+        raise NotImplementedError("Read time not yet implemented")
+
+    # ----- WRITE COMMANDS -----
+    async def send_tare(self):
+        print("Tare.")
+        print(await self._client.write_gatt_char(COMMAND_UUID, TARE_PACKET))
+
+    async def send_timer_start(self):
+        print("Start Timer.")
+        await self._client.write_gatt_char(COMMAND_UUID, TIMER_START_PACKET)
+
+    async def send_timer_stop(self):
+        print("Stop Timer.")
+        await self._client.write_gatt_char(COMMAND_UUID, TIMER_STOP_PACKET)
+
+    async def send_timer_reset(self):
+        print("Reset Timer.")
+        await self._client.write_gatt_char(COMMAND_UUID, TIMER_RESET_PACKET)
+
+    async def send_tare_and_timer_start(self):
+        print("Tare and Start Timer.")
+        await self._client.write_gatt_char(COMMAND_UUID, TARE_AND_TIMER_START_PACKET)
+
+    # ----- PRIVATE -----
+    async def _discover_device(self):
         print("Discovering Devices...")
         devices = await BleakScanner.discover()
         bookoo_devices = [i for i in devices if self._is_bookoo_device(i)]
@@ -47,32 +96,26 @@ class BookooScale:
             return False
         else:
             print("Device Found!")
-            self.address = bookoo_devices[0].address
+            self._address = bookoo_devices[0].address
             return True
 
-    async def connect(self):
+    async def _connect(self):
         print("Connecting...")
-        await self.client.connect()
-        asyncio.create_task(self.poll_weight())
-        while self.weight is None:
+        await self._client.connect()
+
+        # Wait for first weight value
+        asyncio.create_task(self._poll_weight())
+        while self._weight is None:
             await asyncio.sleep(0.05)
-        return self.connected()
+        return self.is_connected()
 
-    def connected(self):
-        if not self.client:
+    def _is_bookoo_device(self, device):
+        if device.name is None:
             return False
-        return self.client.is_connected
-
-    async def disconnect(self):
-        if self.connected():
-            print("Disconnecting...")
-            await self.client.disconnect()
-            self.weight = None
-            return not self.connected()
         else:
-            print("No device connected to disconnect from.")
+            return device.name.lower().startswith("bookoo")
 
-    def on_weight(self, sender, data: bytearray):
+    def _on_weight(self, sender, data: bytearray):
         if len(data) != 20:
             return
 
@@ -84,41 +127,15 @@ class BookooScale:
 
         sign = 1 if data[6] == 43 else -1
         raw = (data[7] << 16) | (data[8] << 8) | data[9]
-        self.weight = sign * (raw / 100)
+        self._weight = sign * (raw / 100)
 
-    async def poll_weight(self):
-        await self.client.start_notify(WEIGHT_UUID, self.on_weight)
+    async def _poll_weight(self):
+        await self._client.start_notify(WEIGHT_UUID, self._on_weight)
 
     async def _send_command(self, data1, data2, data3, datasum=0x00):
         """Send a 6-byte command to the scale (checksum not required)."""
-        if self.client is None or not self.client.is_connected:
+        if self._client is None or not self._client.is_connected:
             raise Exception("Not connected")
 
         packet = bytearray([0x03, 0x0A, data1, data2, data3, datasum])
-        await self.client.write_gatt_char(COMMAND_UUID, packet)
-
-    async def send_tare(self):
-        print("Tare.")
-        print(await self.client.write_gatt_char(COMMAND_UUID, TARE_PACKET))
-
-    async def send_timer_start(self):
-        print("Start Timer.")
-        await self.client.write_gatt_char(COMMAND_UUID, TIMER_START_PACKET)
-
-    async def send_timer_stop(self):
-        print("Stop Timer.")
-        await self.client.write_gatt_char(COMMAND_UUID, TIMER_STOP_PACKET)
-
-    async def send_timer_reset(self):
-        print("Reset Timer.")
-        await self.client.write_gatt_char(COMMAND_UUID, TIMER_RESET_PACKET)
-
-    async def send_tare_and_timer_start(self):
-        print("Tare and Start Timer.")
-        await self.client.write_gatt_char(COMMAND_UUID, TARE_AND_TIMER_START_PACKET)
-
-    def _is_bookoo_device(self, device):
-        if device.name is None:
-            return False
-        else:
-            return device.name.lower().startswith("bookoo")
+        await self._client.write_gatt_char(COMMAND_UUID, packet)
