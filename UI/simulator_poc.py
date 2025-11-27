@@ -1,9 +1,9 @@
 from PIL import Image, ImageDraw, ImageFont
-from Simulator import Simulator
+from VirtualIOController import VirtualIOController
 import time
 
-# Initialize the simulator
-sim = Simulator()
+# Initialize the virtual IO controller
+sim = VirtualIOController()
 
 # Track button presses
 last_button = "None"

@@ -3,34 +3,45 @@ from PIL import Image
 import io
 import threading
 
-class Simulator:
+from IOController import IOController
+
+
+class VirtualIOController(IOController):
+    """
+    Virtual implementation of IOController using a Flask web server.
+    Provides a browser-based interface for development and testing.
+    """
+
     def __init__(self, host="0.0.0.0", port=5000):
+        super().__init__()
+
         self.app = Flask(__name__)
         self.host = host
         self.port = port
 
         # Internal state
-        self._last_action = "None"
         self._current_image = Image.new("RGB", (240, 240), "white")
-
-        # Event callbacks
-        self.on_up = lambda: None
-        self.on_down = lambda: None
-        self.on_left = lambda: None
-        self.on_right = lambda: None
-        self.on_center = lambda: None
-        self.on_a = lambda: None
-        self.on_b = lambda: None
 
         # Setup Flask routes
         self._setup_routes()
 
-        # Start Flask server in a separate thread
+        # Start Flask server in a separate daemon thread
         self._thread = threading.Thread(target=self.app.run, kwargs={
             "host": self.host, "port": self.port, "debug": False, "use_reloader": False
         })
         self._thread.daemon = True
         self._thread.start()
+
+    def draw(self, img: Image.Image):
+        """
+        Display an image on the virtual device.
+
+        Args:
+            img: PIL Image object, must be 240x240 pixels
+        """
+        if img.size != (240, 240):
+            raise ValueError("Image must be 240x240 pixels")
+        self._current_image = img.copy()
 
     def _setup_routes(self):
         @self.app.route("/frame")
@@ -44,7 +55,7 @@ class Simulator:
         @self.app.route("/display")
         def display():
             # Serve the web page with buttons and screen
-            return f"""
+            return """
             <html>
                 <body style="
                     margin:0;
@@ -79,13 +90,13 @@ class Simulator:
                     </div>
 
                     <script>
-                        setInterval(() => {{
+                        setInterval(() => {
                             document.getElementById("screen").src = "/frame?ts=" + Date.now();
-                        }}, 1000);
+                        }, 1000);
 
-                        function send(action) {{
+                        function send(action) {
                             fetch('/input/' + action).catch(err => console.log(err));
-                        }}
+                        }
                     </script>
                 </body>
             </html>
@@ -93,7 +104,6 @@ class Simulator:
 
         @self.app.route("/input/<action>")
         def input_action(action):
-            self._last_action = action
             # Call the appropriate callback
             callbacks = {
                 "up": self.on_up,
@@ -106,13 +116,4 @@ class Simulator:
             }
             if action in callbacks:
                 callbacks[action]()
-            print("Input:", action)
             return "ok"
-
-    def draw(self, img):
-        """
-        Accepts a 240x240 PIL image to display on the simulated screen
-        """
-        if img.size != (240, 240):
-            raise ValueError("Image must be 240x240 pixels")
-        self._current_image = img.copy()
