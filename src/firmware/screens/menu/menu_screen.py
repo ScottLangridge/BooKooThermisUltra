@@ -18,7 +18,7 @@ class MenuScreen(BaseScreen):
 
     def __init__(self, scale: BookooScale, display: IOController,
                  title: str, options: list[MenuOption], items_per_page: int = 5,
-                 header_height: int = 40, footer_height: int = 40):
+                 header_height: int = 40, footer_height: int = 30):
         """
         Create a menu screen
 
@@ -103,23 +103,9 @@ class MenuScreen(BaseScreen):
             font=self.title_font
         )
 
-        # Draw bottom border
-        draw.line(
-            [(0, self.header_height), (self.width, self.header_height)],
-            fill="black",
-            width=2
-        )
-
     def draw_footer(self, draw):
         """Render page indicator"""
         footer_y = self.height - self.footer_height
-
-        # Draw top border
-        draw.line(
-            [(0, footer_y), (self.width, footer_y)],
-            fill="black",
-            width=2
-        )
 
         # Draw page indicator (centered)
         page_text = f"page {self.current_page + 1}/{self.total_pages}"
@@ -159,13 +145,6 @@ class MenuScreen(BaseScreen):
             fill=text_color,
             anchor="rm",
             font=self.option_font
-        )
-
-        # Draw border between items
-        draw.line(
-            [(0, y_position + self.row_height), (self.width, y_position + self.row_height)],
-            fill="black",
-            width=2
         )
 
     def draw_menu_items(self, draw):
