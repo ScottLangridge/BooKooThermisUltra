@@ -3,7 +3,7 @@ from PIL import Image
 import io
 import threading
 
-from IOController import IOController
+from .IOController import IOController
 
 
 class VirtualIOController(IOController):
