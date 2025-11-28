@@ -11,7 +11,7 @@ from drivers.UI.VirtualIOController import VirtualIOController
 
 
 class BaseFirmware:
-    """Base class for firmware applications with scale and display"""
+    """Base class for screens applications with scale and display"""
 
     def __init__(self):
         self.scale = None
