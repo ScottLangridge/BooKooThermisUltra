@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 from bleak import BleakScanner, BleakClient
 
@@ -18,7 +19,11 @@ class BookooScale:
         self._client = None
 
         self._weight = None
-        self._time = None  # todo implement timer tracking
+
+        # Timer tracking
+        self._timer_start_time = None
+        self._timer_running = False
+        self._timer_elapsed = 0.0  # Accumulated time when timer is paused
 
     # ----- CONNECTIVITY -----
     async def establish_connection(self):
@@ -59,28 +64,81 @@ class BookooScale:
         return self._weight
 
     def read_time(self):
-        raise NotImplementedError("Read time not yet implemented")
+        """Read current timer value in seconds"""
+        if not self._timer_running:
+            return self._timer_elapsed
+
+        # Timer is running, calculate current elapsed time
+        current_time = time.time()
+        running_time = current_time - self._timer_start_time
+        return self._timer_elapsed + running_time
+
+    def is_timer_running(self):
+        """Check if timer is currently running"""
+        return self._timer_running
 
     # ----- WRITE COMMANDS -----
     async def send_tare(self):
         print("Tare.")
-        print(await self._client.write_gatt_char(COMMAND_UUID, TARE_PACKET))
+        await self._client.write_gatt_char(COMMAND_UUID, TARE_PACKET)
 
     async def send_timer_start(self):
         print("Start Timer.")
+
+        if self._timer_running:
+            print("Timer already running, ignoring start command.")
+            return
+
+        if self._timer_elapsed > 0:
+            print("Timer is paused with accumulated time, ignoring start command. Reset timer first.")
+            return
+
         await self._client.write_gatt_char(COMMAND_UUID, TIMER_START_PACKET)
+
+        # Update timer tracking - always update to stay in sync with scale
+        self._timer_start_time = time.time()
+        self._timer_running = True
 
     async def send_timer_stop(self):
         print("Stop Timer.")
+
+        if not self._timer_running:
+            print("Timer not running, ignoring stop command.")
+            return
+
         await self._client.write_gatt_char(COMMAND_UUID, TIMER_STOP_PACKET)
+
+        # Accumulate elapsed time
+        current_time = time.time()
+        self._timer_elapsed += current_time - self._timer_start_time
+        self._timer_running = False
 
     async def send_timer_reset(self):
         print("Reset Timer.")
+
+        if self._timer_running:
+            print("Timer is running, ignoring reset command. Stop timer first.")
+            return
+
         await self._client.write_gatt_char(COMMAND_UUID, TIMER_RESET_PACKET)
+
+        # Reset timer tracking
+        self._timer_start_time = None
+        self._timer_running = False
+        self._timer_elapsed = 0.0
 
     async def send_tare_and_timer_start(self):
         print("Tare and Start Timer.")
+
+        if self._timer_running:
+            print("Timer already running, ignoring tare+start command.")
+            return
+
         await self._client.write_gatt_char(COMMAND_UUID, TARE_AND_TIMER_START_PACKET)
+
+        # Update timer tracking (same as timer_start) - always update to stay in sync
+        self._timer_start_time = time.time()
+        self._timer_running = True
 
     # ----- PRIVATE -----
     async def _discover_device(self):
