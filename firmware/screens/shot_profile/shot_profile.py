@@ -38,6 +38,7 @@ class ShotProfile(BaseScreen):
         # Fonts
         self.info_font = None
         self.axis_font = None
+        self.label_font = None
 
         # Shot data storage
         self.shot_data = []      # List of (time, weight) tuples
@@ -78,6 +79,15 @@ class ShotProfile(BaseScreen):
                 self.axis_font = ImageFont.truetype("Arial.ttf", 14)
             except:
                 self.axis_font = ImageFont.load_default()
+
+        # Load smaller font for label labels
+        try:
+            self.label_font = ImageFont.truetype("arial.ttf", 12)
+        except:
+            try:
+                self.label_font = ImageFont.truetype("Arial.ttf", 12)
+            except:
+                self.label_font = ImageFont.load_default()
 
         # Get reference to the main event loop for cross-thread async calls
         loop = asyncio.get_event_loop()
@@ -342,16 +352,17 @@ class ShotProfile(BaseScreen):
             draw.line([p1, p2], fill="red", width=2)
 
     def draw_info_section(self, draw):
-        """Draw the bottom info section with two boxes"""
+        """Draw the bottom info section with three boxes"""
         info_y = self.graph_height
-        box_width = self.width // 2
+        box_width = self.width // 3
 
         # Draw dividing lines
         # Horizontal line separating graph from info
         draw.line([(0, info_y), (self.width, info_y)], fill="black", width=2)
 
-        # Vertical line dividing the two info boxes
+        # Vertical lines dividing the three info boxes
         draw.line([(box_width, info_y), (box_width, self.height)], fill="black", width=2)
+        draw.line([(box_width * 2, info_y), (box_width * 2, self.height)], fill="black", width=2)
 
         # Draw border around whole display
         draw.rectangle([(0, 0), (self.width-1, self.height-1)], outline="black", width=2)
@@ -360,20 +371,33 @@ class ShotProfile(BaseScreen):
         timer_seconds = self.scale.read_time()
         weight = self.scale.read_weight()
 
+        # Get current flowrate (most recent filtered value)
+        current_flowrate = 0.0
+        if self.flowrate_data:
+            current_flowrate = self.flowrate_data[-1][1]  # Get flowrate from last tuple
+
         # Format values
         time_text = f"{timer_seconds:.0f}" if timer_seconds is not None else "0"
+        flowrate_text = f"{current_flowrate:.1f}"
         weight_text = f"{weight:.1f}" if weight is not None else "0.0"
 
-        # Draw numbers in each box
+        # Draw numbers and labels in each box
         # Left box: Timer (seconds)
         left_center_x = box_width // 2
-        left_center_y = info_y + (self.info_height // 2)
-        draw.text((left_center_x, left_center_y), time_text, fill="black", anchor="mm", font=self.info_font)
+        value_y = info_y + (self.info_height // 2) - 6
+        label_y = info_y + (self.info_height // 2) + 19
+        draw.text((left_center_x, value_y), time_text, fill="black", anchor="mm", font=self.info_font)
+        draw.text((left_center_x, label_y), "Time (s)", fill="black", anchor="mm", font=self.label_font)
+
+        # Middle box: Flowrate (g/s)
+        middle_center_x = box_width + (box_width // 2)
+        draw.text((middle_center_x, value_y), flowrate_text, fill="black", anchor="mm", font=self.info_font)
+        draw.text((middle_center_x, label_y), "Flow (g/s)", fill="black", anchor="mm", font=self.label_font)
 
         # Right box: Weight (grams)
-        right_center_x = box_width + (box_width // 2)
-        right_center_y = info_y + (self.info_height // 2)
-        draw.text((right_center_x, right_center_y), weight_text, fill="black", anchor="mm", font=self.info_font)
+        right_center_x = box_width * 2 + (box_width // 2)
+        draw.text((right_center_x, value_y), weight_text, fill="black", anchor="mm", font=self.info_font)
+        draw.text((right_center_x, label_y), "Weight (g)", fill="black", anchor="mm", font=self.label_font)
 
     async def loop(self):
         """Main loop - draw the graph layout"""
