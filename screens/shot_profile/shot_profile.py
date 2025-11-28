@@ -57,10 +57,10 @@ class ShotProfile(BaseFirmware):
 
         # Load font for info display
         try:
-            self.info_font = ImageFont.truetype("arial.ttf", 32)
+            self.info_font = ImageFont.truetype("arial.ttf", 24)
         except:
             try:
-                self.info_font = ImageFont.truetype("Arial.ttf", 32)
+                self.info_font = ImageFont.truetype("Arial.ttf", 24)
             except:
                 self.info_font = ImageFont.load_default()
 
