@@ -65,18 +65,18 @@ class VirtualIOController(IOController):
                     justify-content:center;
                     align-items:center;
                     font-family:sans-serif;
-                ">
+                " tabindex="0">
                     <!-- Left joystick -->
                     <div style="display:flex; flex-direction:column; align-items:center; margin-right:40px;">
-                        <button onclick="send('up')" style="width:60px;height:60px;">▲</button>
+                        <button onclick="send('up'); this.blur();" style="width:60px;height:60px;">▲</button>
                         <div style="height:10px;"></div>
                         <div style="display:flex; flex-direction:row; align-items:center;">
-                            <button onclick="send('left')" style="width:60px;height:60px;">◀</button>
-                            <button onclick="send('center')" style="width:60px;height:60px; border-radius:50%; margin:0 10px;">●</button>
-                            <button onclick="send('right')" style="width:60px;height:60px;">▶</button>
+                            <button onclick="send('left'); this.blur();" style="width:60px;height:60px;">◀</button>
+                            <button onclick="send('center'); this.blur();" style="width:60px;height:60px; border-radius:50%; margin:0 10px;">●</button>
+                            <button onclick="send('right'); this.blur();" style="width:60px;height:60px;">▶</button>
                         </div>
                         <div style="height:10px;"></div>
-                        <button onclick="send('down')" style="width:60px;height:60px;">▼</button>
+                        <button onclick="send('down'); this.blur();" style="width:60px;height:60px;">▼</button>
                     </div>
 
                     <!-- Display -->
@@ -84,12 +84,15 @@ class VirtualIOController(IOController):
 
                     <!-- Right buttons A/B -->
                     <div style="display:flex; flex-direction:column; align-items:center; margin-left:40px;">
-                        <button onclick="send('A')" style="width:60px;height:60px;font-size:24px;">A</button>
+                        <button onclick="send('A'); this.blur();" style="width:60px;height:60px;font-size:24px;">A</button>
                         <div style="height:20px;"></div>
-                        <button onclick="send('B')" style="width:60px;height:60px;font-size:24px;">B</button>
+                        <button onclick="send('B'); this.blur();" style="width:60px;height:60px;font-size:24px;">B</button>
                     </div>
 
                     <script>
+                        // Auto-focus the body on load so keyboard events work immediately
+                        document.body.focus();
+
                         setInterval(() => {
                             document.getElementById("screen").src = "/frame?ts=" + Date.now();
                         }, 1000);
@@ -97,6 +100,26 @@ class VirtualIOController(IOController):
                         function send(action) {
                             fetch('/input/' + action).catch(err => console.log(err));
                         }
+
+                        // Keyboard event handling
+                        document.addEventListener('keydown', (event) => {
+                            const keyMap = {
+                                'ArrowUp': 'up',
+                                'ArrowDown': 'down',
+                                'ArrowLeft': 'left',
+                                'ArrowRight': 'right',
+                                ' ': 'center',
+                                'a': 'A',
+                                'b': 'B'
+                            };
+
+                            const action = keyMap[event.key];
+                            if (action) {
+                                event.preventDefault();  // Prevent default browser behavior (e.g., scrolling)
+                                event.stopPropagation(); // Prevent event from bubbling
+                                send(action);
+                            }
+                        });
                     </script>
                 </body>
             </html>
