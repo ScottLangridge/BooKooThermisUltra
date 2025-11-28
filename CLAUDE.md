@@ -14,6 +14,8 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
    - `Scale/BookooScale.py`: Bluetooth Low Energy (BLE) driver for BooKoo scales using bleak library
      - Handles device discovery, connection management, and weight/timer data
      - Maintains local timer state synchronized with scale hardware
+     - Calculates flowrate (g/s) from weight history with moving average smoothing
+     - Tracks last 50 weight measurements (~5 seconds at 10Hz) for flowrate calculation
      - Weight UUID: `0000ff11-0000-1000-8000-00805f9b34fb`
      - Command UUID: `0000ff12-0000-1000-8000-00805f9b34fb`
    - `IODevices/IOController.py`: Abstract base class for display hardware (240x240 display, 7 buttons: up/down/left/right/center/A/B)
@@ -39,7 +41,8 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
      - Handles cleanup on exit
    - `menu/`: Menu system for navigation between applications
      - `menu_screen.py`: `MenuScreen` class for rendering paginated menus with header/footer
-       - Supports up/down/center button navigation
+       - Supports up/down/center/right button navigation
+       - Both CENTER and RIGHT buttons select menu items
        - Configurable items per page, header/footer heights
        - Auto-paging when scrolling beyond visible items
      - `menu_option.py`: `MenuOption` class representing selectable menu items
@@ -52,12 +55,14 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
      - B button: tare
      - LEFT button: return to menu
    - `shot_profile/shot_profile.py`: Espresso shot profiling with real-time graphing
-     - Graphs weight vs time with dynamic axis scaling
-     - A button: start/stop recording
-     - B button: reset timer and clear graph
+     - Dual-axis graphing: weight (blue, left Y-axis) and flowrate (red, right Y-axis)
+     - Dynamic axis auto-scaling for both weight and flowrate
+     - Three-box info display: Time (s), Flow (g/s), Weight (g)
+     - A button: tare and start recording
+     - B button: reset timer and clear graph data
      - LEFT button: return to menu
      - Updates at 10Hz
-     - Displays live timer and weight readouts
+     - Flowrate calculated with moving average smoothing
 
 ### Key Design Patterns
 
@@ -143,6 +148,7 @@ The BookooScale driver provides these async methods:
 - `send_tare_and_timer_start()`: Combined tare and timer start
 - `read_weight()`: Get current weight in grams
 - `read_time()`: Get timer value in seconds
+- `read_flowrate()`: Get current flowrate in grams per second (g/s)
 - `is_timer_running()`: Check timer state
 
 ### Timer State Management
@@ -151,6 +157,16 @@ The scale maintains timer state both on the device and locally. The local state 
 - Cannot start timer if already running
 - Cannot start timer if there's accumulated time (must reset first)
 - Cannot reset timer while running (must stop first)
+
+### Flowrate Calculation
+
+The scale automatically calculates flowrate (rate of weight change) from weight measurements:
+- Maintains a rolling history of the last 50 weight measurements (~5 seconds at 10Hz)
+- Calculates instantaneous flowrate between consecutive measurements (delta_weight / delta_time)
+- Applies moving average smoothing (window size: 5) to reduce noise
+- Returns flowrate in grams per second (g/s)
+- Updates automatically whenever weight data is received
+- Useful for monitoring espresso extraction flow rates during shot profiling
 
 ## Important Notes
 
