@@ -10,7 +10,7 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
 
 ### Three-Layer Architecture
 
-1. **Driver Layer** (`drivers/`)
+1. **Driver Layer** (`src/drivers/`)
    - `Scale/BookooScale.py`: Bluetooth Low Energy (BLE) driver for BooKoo scales using bleak library
      - Handles device discovery, connection management, and weight/timer data
      - Maintains local timer state synchronized with scale hardware
@@ -23,7 +23,7 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
      - Runs on http://0.0.0.0:5000/display
      - Auto-refreshes display at 1Hz, provides virtual button interface
 
-2. **Framework Layer** (`firmware/screens/`)
+2. **Framework Layer** (`src/firmware/screens/`)
    - `base_screen.py`: Contains `BaseScreen` async base class providing common functionality for screen applications
      - Accepts hardware instances (scale, display) via dependency injection
      - Provides lifecycle management with `setup()` and `loop()` methods
@@ -49,7 +49,7 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
        - Supports both sync and async callbacks
        - Configurable label and icon
 
-3. **Application Layer** (`firmware/screens/`)
+3. **Application Layer** (`src/firmware/screens/`)
    - `simple_scale/simple_scale.py`: Basic weight display with timer controls
      - A button: start/stop timer
      - B button: tare
@@ -78,7 +78,7 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
 
 The application follows this control flow:
 
-1. **Startup** (`firmware/main.py`):
+1. **Startup** (`src/firmware/main.py`):
    - ScreenManager creates hardware instances (once)
    - ConnectionScreen handles scale connection with visual feedback
    - Transitions to main menu after successful connection
@@ -104,18 +104,27 @@ The application follows this control flow:
 
 ### Running Applications
 
+All applications should be run from the project root directory. The code uses `sys.path.append()` to configure imports.
+
 ```bash
 # Run the main application (recommended)
-python firmware/main.py
+python -m src.firmware.main
+
+# Alternative: Set PYTHONPATH and run directly
+# On Windows:
+set PYTHONPATH=%CD% && python src/firmware/main.py
+
+# On Linux/Mac:
+PYTHONPATH=. python src/firmware/main.py
 
 # Run individual screens for testing
-python firmware/screens/simple_scale/simple_scale.py
-python firmware/screens/shot_profile/shot_profile.py
+python -m src.firmware.screens.simple_scale.simple_scale
+python -m src.firmware.screens.shot_profile.shot_profile
 
 # Run proof-of-concept demos
-python pocs/menu_poc.py           # Menu system test
-python pocs/scale_poc.py          # Scale communication test
-python pocs/simulator_poc.py      # Display simulator test
+python -m src.pocs.menu_poc           # Menu system test
+python -m src.pocs.scale_poc          # Scale communication test
+python -m src.pocs.simulator_poc      # Display simulator test
 ```
 
 ### Testing
@@ -171,7 +180,7 @@ The scale automatically calculates flowrate (rate of weight change) from weight 
 ## Important Notes
 
 - Python 3.10+ required
-- All screen applications inherit from `BaseScreen` (located in `firmware/screens/base_screen.py`)
+- All screen applications inherit from `BaseScreen` (located in `src/firmware/screens/base_screen.py`)
 - Screens receive hardware via constructor (dependency injection pattern)
 - Screens must call `self.stop()` to return control to ScreenManager
 - Hardware is initialized once and shared across all screens
