@@ -7,13 +7,15 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
 from firmware.screens.base_screen import BaseScreen
+from drivers.Scale.BookooScale import BookooScale
+from drivers.IODevices.IOController import IOController
 
 
 class ShotProfile(BaseScreen):
     """Shot profile graphing application"""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, scale: BookooScale, display: IOController):
+        super().__init__(scale, display)
         # Display dimensions
         self.width = 240
         self.height = 240
@@ -95,9 +97,14 @@ class ShotProfile(BaseScreen):
             self.x_max = self.default_x_max
             self.y_max = self.default_y_max
 
+        # LEFT Button: Return to menu
+        async def on_left():
+            self.stop()  # Signal to exit and return control
+
         # Set up button callbacks using run_coroutine_threadsafe for cross-thread async
         self.display.on_a = lambda: asyncio.run_coroutine_threadsafe(on_button_a(), loop)
         self.display.on_b = lambda: asyncio.run_coroutine_threadsafe(on_button_b(), loop)
+        self.display.on_left = lambda: asyncio.run_coroutine_threadsafe(on_left(), loop)
 
     def calculate_ticks(self, min_val, max_val, target_ticks=5):
         tick_step = 1
@@ -294,5 +301,23 @@ class ShotProfile(BaseScreen):
 
 
 if __name__ == "__main__":
-    app = ShotProfile()
-    asyncio.run(app.run())
+    async def main():
+        """Standalone entry point for testing"""
+        from drivers.IODevices.VirtualIOController import VirtualIOController
+        from firmware.screens.connection_screen import ConnectionScreen
+
+        scale = BookooScale()
+        display = VirtualIOController()
+
+        # Connection phase
+        connection_screen = ConnectionScreen(display, scale)
+        await connection_screen.run_until_connected()
+
+        # Run screen
+        app = ShotProfile(scale, display)
+        await app.run()
+
+        # Cleanup
+        await scale.disconnect()
+
+    asyncio.run(main())

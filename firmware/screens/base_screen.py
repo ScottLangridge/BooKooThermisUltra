@@ -7,15 +7,27 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
 from drivers.Scale.BookooScale import BookooScale
-from drivers.IODevices.VirtualIOController import VirtualIOController
+from drivers.IODevices.IOController import IOController
 
 
 class BaseScreen:
-    """Base class for screens applications with scale and display"""
+    """Abstract base class for all screens"""
 
-    def __init__(self):
-        self.scale = None
-        self.display = None
+    def __init__(self, scale: BookooScale, display: IOController):
+        """
+        Initialize screen with hardware dependencies
+
+        Args:
+            scale: Connected BookooScale instance
+            display: IOController instance
+        """
+        self.scale = scale
+        self.display = display
+        self.running = False
+
+    def stop(self):
+        """Signal the screen to stop and return control voluntarily"""
+        self.running = False
 
     def show_splash(self, message, color="black"):
         """Display a message on the screen"""
@@ -43,21 +55,6 @@ class BaseScreen:
 
         self.display.draw(img)
 
-    async def connect_to_scale(self):
-        """Connect to scale with infinite retry"""
-        connected = False
-        while not connected:
-            self.show_splash("Connecting...", "blue")
-            print("Connecting to scale...")
-            connected = await self.scale.establish_connection()
-
-            if not connected:
-                print("Failed to connect to scale, retrying...")
-                self.show_splash("Connection\nFailed", "red")
-                await asyncio.sleep(1)
-
-        print("Connected!")
-
     async def setup(self):
         """Override this method to add setup logic after connection"""
         pass
@@ -67,23 +64,17 @@ class BaseScreen:
         raise NotImplementedError("Subclasses must implement loop()")
 
     async def run(self):
-        """Main entry point - handles initialization and cleanup"""
-        # Initialize hardware
-        self.scale = BookooScale()
-        self.display = VirtualIOController()
-
-        # Connect to scale
-        await self.connect_to_scale()
-
-        # Run subclass setup
+        """
+        Run screen lifecycle until stop() is called.
+        When this method returns, control goes back to ScreenManager.
+        """
         await self.setup()
+        self.running = True
 
         try:
-            # Run the main loop
-            while True:
+            while self.running:
                 await self.loop()
-
         except KeyboardInterrupt:
             print("\nShutting down...")
-        finally:
-            await self.scale.disconnect()
+
+        # When running becomes False, loop exits and control returns

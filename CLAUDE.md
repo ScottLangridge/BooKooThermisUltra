@@ -23,10 +23,20 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
 
 2. **Framework Layer** (`firmware/screens/`)
    - `base_screen.py`: Contains `BaseScreen` async base class providing common functionality for screen applications
-     - Handles scale connection with infinite retry
-     - Manages hardware initialization (scale + display)
+     - Accepts hardware instances (scale, display) via dependency injection
+     - Provides lifecycle management with `setup()` and `loop()` methods
+     - Provides `stop()` method for voluntary control return to ScreenManager
      - Provides splash screen utility
      - Subclasses implement `setup()` and `loop()` methods
+   - `connection_screen.py`: Dedicated screen for scale connection
+     - Handles connection with infinite retry and visual feedback
+     - Shows "Connecting...", "Connected!", or "Connection Failed" splash screens
+     - Used once at application startup
+   - `screen_manager.py`: Central orchestrator for application flow
+     - Initializes hardware once (shared across all screens)
+     - Manages screen transitions via `switch_screen()`
+     - Runs connection phase, then enters menu loop
+     - Handles cleanup on exit
    - `menu/`: Menu system for navigation between applications
      - `menu_screen.py`: `MenuScreen` class for rendering paginated menus with header/footer
        - Supports up/down/center button navigation
@@ -37,35 +47,68 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
        - Configurable label and icon
 
 3. **Application Layer** (`firmware/screens/`)
-   - `simple_scale/simple_scale.py`: Basic weight display with timer controls (A: start/stop timer, B: tare)
+   - `simple_scale/simple_scale.py`: Basic weight display with timer controls
+     - A button: start/stop timer
+     - B button: tare
+     - LEFT button: return to menu
    - `shot_profile/shot_profile.py`: Espresso shot profiling with real-time graphing
      - Graphs weight vs time with dynamic axis scaling
      - A button: start/stop recording
      - B button: reset timer and clear graph
+     - LEFT button: return to menu
      - Updates at 10Hz
      - Displays live timer and weight readouts
 
 ### Key Design Patterns
 
 - **Async/Await**: All scale communication and main loops are async
+- **Dependency Injection**: Screens receive hardware instances via constructor rather than creating them
+- **Separation of Concerns**: Connection logic separated from screen lifecycle management
+- **Hardware Singleton**: Scale and display initialized once and shared across all screens
+- **Voluntary Control Return**: Screens call `stop()` to return control to ScreenManager
 - **Event Callbacks**: Button handlers use `asyncio.run_coroutine_threadsafe()` to bridge Flask's threading model with asyncio
 - **Hardware Abstraction**: IOController interface allows swapping between real hardware and virtual simulator
+
+### Application Flow
+
+The application follows this control flow:
+
+1. **Startup** (`firmware/main.py`):
+   - ScreenManager creates hardware instances (once)
+   - ConnectionScreen handles scale connection with visual feedback
+   - Transitions to main menu after successful connection
+
+2. **Menu Loop**:
+   - User navigates menu with UP/DOWN buttons
+   - User selects screen with CENTER button
+   - Selected screen runs until user presses LEFT button
+   - Control returns to menu
+
+3. **Screen Lifecycle**:
+   - Screen receives hardware via constructor
+   - `setup()` initializes screen-specific resources
+   - `loop()` runs continuously until `stop()` is called
+   - LEFT button calls `stop()` to return control to ScreenManager
+
+4. **Exit**:
+   - User selects "Exit" from menu
+   - ScreenManager disconnects from scale
+   - Application terminates
 
 ## Development Commands
 
 ### Running Applications
 
 ```bash
-# Run the menu system (main entry point)
-python pocs/menu_poc.py
+# Run the main application (recommended)
+python firmware/main.py
 
-# Run the simple scale firmware
+# Run individual screens for testing
 python firmware/screens/simple_scale/simple_scale.py
-
-# Run the shot profiling firmware
 python firmware/screens/shot_profile/shot_profile.py
 
 # Run proof-of-concept demos
+python pocs/menu_poc.py           # Menu system test
 python pocs/scale_poc.py          # Scale communication test
 python pocs/simulator_poc.py      # Display simulator test
 ```
@@ -113,6 +156,10 @@ The scale maintains timer state both on the device and locally. The local state 
 
 - Python 3.10+ required
 - All screen applications inherit from `BaseScreen` (located in `firmware/screens/base_screen.py`)
+- Screens receive hardware via constructor (dependency injection pattern)
+- Screens must call `self.stop()` to return control to ScreenManager
+- Hardware is initialized once and shared across all screens
+- Connection logic is handled by `ConnectionScreen`, not individual screens
 - Display images must be exactly 240x240 pixels (RGB mode)
 - Button callbacks run in Flask's thread context, use `asyncio.run_coroutine_threadsafe()` for async operations
 - Scale discovery looks for devices with names starting with "bookoo" (case-insensitive)

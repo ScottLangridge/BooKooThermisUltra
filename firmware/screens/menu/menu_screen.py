@@ -9,24 +9,29 @@ sys.path.append(str(Path(__file__).parent.parent))
 from PIL import Image, ImageDraw, ImageFont
 from firmware.screens.base_screen import BaseScreen
 from firmware.screens.menu.menu_option import MenuOption
+from drivers.Scale.BookooScale import BookooScale
+from drivers.IODevices.IOController import IOController
 
 
 class MenuScreen(BaseScreen):
     """Main menu firmware that handles rendering and navigation"""
 
-    def __init__(self, title: str, options: list[MenuOption], items_per_page: int = 5,
+    def __init__(self, scale: BookooScale, display: IOController,
+                 title: str, options: list[MenuOption], items_per_page: int = 5,
                  header_height: int = 40, footer_height: int = 40):
         """
         Create a menu screen
 
         Args:
+            scale: Connected BookooScale instance
+            display: IOController instance
             title: Menu title displayed in header
             options: List of all menu options
             items_per_page: Number of options visible at once (default: 5)
             header_height: Fixed height for title section (default: 40)
             footer_height: Fixed height for page indicator (default: 40)
         """
-        super().__init__()
+        super().__init__(scale, display)
 
         # Configuration
         self.title = title

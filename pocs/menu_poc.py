@@ -49,15 +49,36 @@ options = [
     MenuOption("Exit", callback=exit_callback),
 ]
 
-# Create menu screen
-menu = MenuScreen(
-    title="MAIN MENU",
-    options=options,
-    items_per_page=5,
-    header_height=40,
-    footer_height=40
-)
-
 # Run the menu
 if __name__ == "__main__":
-    asyncio.run(menu.run())
+    async def main():
+        """Standalone entry point for testing menu"""
+        from drivers.Scale.BookooScale import BookooScale
+        from drivers.IODevices.VirtualIOController import VirtualIOController
+        from firmware.screens.connection_screen import ConnectionScreen
+
+        scale = BookooScale()
+        display = VirtualIOController()
+
+        # Connection phase
+        connection_screen = ConnectionScreen(display, scale)
+        await connection_screen.run_until_connected()
+
+        # Create menu screen
+        menu = MenuScreen(
+            scale=scale,
+            display=display,
+            title="MAIN MENU",
+            options=options,
+            items_per_page=5,
+            header_height=40,
+            footer_height=40
+        )
+
+        # Run the menu
+        await menu.run()
+
+        # Cleanup
+        await scale.disconnect()
+
+    asyncio.run(main())
