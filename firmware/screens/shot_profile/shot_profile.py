@@ -25,8 +25,8 @@ class ShotProfile(BaseScreen):
         self.info_height = 60    # Bottom section for info
 
         # Graph area with padding (asymmetric to accommodate labels)
-        self.graph_padding_left = 27    # Extra space for Y-axis labels
-        self.graph_padding_right = 10   # Minimal right padding
+        self.graph_padding_left = 27    # Extra space for Y-axis labels (weight)
+        self.graph_padding_right = 30   # Space for flowrate Y-axis labels
         self.graph_padding_top = 10     # Minimal top padding
         self.graph_padding_bottom = 25  # Space for X-axis labels
 
@@ -41,6 +41,7 @@ class ShotProfile(BaseScreen):
 
         # Shot data storage
         self.shot_data = []      # List of (time, weight) tuples
+        self.flowrate_data = []  # List of (time, flowrate) tuples (g/s)
         self.recording = False   # Track if we're actively recording
 
         # Axis scaling state
@@ -48,10 +49,13 @@ class ShotProfile(BaseScreen):
         self.x_max = 30     # X-axis maximum (default 30s)
         self.y_min = 0      # Y-axis minimum (weight in grams)
         self.y_max = 40     # Y-axis maximum (default 40g)
+        self.flow_min = 0   # Flowrate Y-axis minimum (g/s)
+        self.flow_max = 5   # Flowrate Y-axis maximum (default 5 g/s)
 
         # Default ranges
         self.default_x_max = 30
         self.default_y_max = 40
+        self.default_flow_max = 10
 
     async def setup(self):
         """Initialize after connection"""
@@ -86,16 +90,18 @@ class ShotProfile(BaseScreen):
                 self.recording = False
             else:
                 # Start recording
-                await self.scale.send_timer_start()
+                await self.scale.send_tare_and_timer_start()
                 self.recording = True
 
         # Button B: Reset Timer
         async def on_button_b():
             await self.scale.send_timer_reset()
             self.shot_data.clear()  # Clear graph data
+            self.flowrate_data.clear()  # Clear flowrate data
             # Reset scales to defaults
             self.x_max = self.default_x_max
             self.y_max = self.default_y_max
+            self.flow_max = self.default_flow_max
 
         # LEFT Button: Return to menu
         async def on_left():
@@ -121,6 +127,48 @@ class ShotProfile(BaseScreen):
 
         return ticks
 
+    def calculate_flowrate(self):
+        """Calculate flowrate (g/s) from weight data with smoothing"""
+        self.flowrate_data.clear()
+
+        if len(self.shot_data) < 2:
+            return  # Need at least 2 points to calculate flowrate
+
+        # Calculate raw flowrate for each consecutive pair of points
+        raw_flowrates = []
+        for i in range(len(self.shot_data) - 1):
+            time1, weight1 = self.shot_data[i]
+            time2, weight2 = self.shot_data[i + 1]
+
+            # Calculate change in weight and time
+            delta_weight = weight2 - weight1
+            delta_time = time2 - time1
+
+            # Avoid division by zero
+            if delta_time > 0:
+                flowrate = delta_weight / delta_time  # g/s
+                # Use the midpoint time for the flowrate value
+                mid_time = (time1 + time2) / 2
+                raw_flowrates.append((mid_time, flowrate))
+            else:
+                # If same time, use the first time point with 0 flowrate
+                raw_flowrates.append((time1, 0))
+
+        # Apply moving average smoothing to reduce noise
+        window_size = 5  # Adjust this value for more/less smoothing
+        for i in range(len(raw_flowrates)):
+            # Calculate window boundaries
+            start_idx = max(0, i - window_size // 2)
+            end_idx = min(len(raw_flowrates), i + window_size // 2 + 1)
+
+            # Average flowrate values in window
+            window_values = [f for t, f in raw_flowrates[start_idx:end_idx]]
+            smoothed_flowrate = sum(window_values) / len(window_values)
+
+            # Keep original time
+            time = raw_flowrates[i][0]
+            self.flowrate_data.append((time, smoothed_flowrate))
+
     def update_axis_scales(self):
         """Update axis min/max based on current state and data"""
         if not self.shot_data:
@@ -129,6 +177,8 @@ class ShotProfile(BaseScreen):
             self.x_max = self.default_x_max
             self.y_min = 0
             self.y_max = self.default_y_max
+            self.flow_min = 0
+            self.flow_max = self.default_flow_max
             return
 
         # Extract current data ranges
@@ -138,16 +188,26 @@ class ShotProfile(BaseScreen):
         data_time_max = max(times)
         data_weight_max = max(weights)
 
+        # Get flowrate data range
+        data_flow_max = 0
+        if self.flowrate_data:
+            flowrates = [f for t, f in self.flowrate_data]
+            if flowrates:
+                data_flow_max = max(flowrates) if max(flowrates) > 0 else 0
+
         if self.recording:
             # DURING SHOT: Expand if needed, never shrink
             self.x_max = max(self.default_x_max, data_time_max)
             self.y_max = max(self.default_y_max, data_weight_max)
+            self.flow_max = max(self.default_flow_max, data_flow_max)
 
             # Add small buffer to expanding axis (5% or maintain current)
             if data_time_max > self.default_x_max:
                 self.x_max = data_time_max * 1.05
             if data_weight_max > self.default_y_max:
                 self.y_max = data_weight_max * 1.05
+            if data_flow_max > self.default_flow_max:
+                self.flow_max = data_flow_max * 1.05
 
         else:
             # AFTER SHOT: Optimize to fit data
@@ -155,6 +215,7 @@ class ShotProfile(BaseScreen):
                 # Data fits in defaults, use fitted scale
             self.x_max = max(data_time_max * 1.1, 5)  # Min 5s display
             self.y_max = max(data_weight_max * 1.1, 10)  # Min 10g display
+            self.flow_max = max(data_flow_max * 1.1, 1)  # Min 1 g/s display
             # else:
             #     # Data exceeded defaults, keep expanded view
             #     self.x_max = max(self.default_x_max, data_time_max * 1.1)
@@ -163,6 +224,7 @@ class ShotProfile(BaseScreen):
         # Always start at 0
         self.x_min = 0
         self.y_min = 0
+        self.flow_min = 0
 
     def draw_graph_axes(self, draw):
         """Draw axes with tick marks and labels"""
@@ -212,6 +274,27 @@ class ShotProfile(BaseScreen):
             draw.text((pixel_x, y_pos + tick_length + 2), label,
                       fill="black", anchor="mt", font=self.axis_font)
 
+        # Right Y-axis for flowrate (g/s)
+        right_x_pos = self.graph_x + self.graph_w
+        draw.line([(right_x_pos, y_start), (right_x_pos, y_end)], fill="black", width=1)
+
+        # Flowrate axis ticks and labels
+        flow_ticks = self.calculate_ticks(self.flow_min, self.flow_max)
+        for value in flow_ticks:
+            # Calculate pixel position for this value
+            flow_norm = (value - self.flow_min) / (self.flow_max - self.flow_min) if self.flow_max > 0 else 0
+            pixel_y = (self.graph_y + self.graph_h) - flow_norm * self.graph_h
+
+            # Draw tick mark
+            tick_length = 5
+            draw.line([(right_x_pos, pixel_y), (right_x_pos + tick_length, pixel_y)],
+                      fill="black", width=1)
+
+            # Draw label (to the right of tick)
+            label = f"{int(value)}"
+            draw.text((right_x_pos + tick_length + 3, pixel_y), label,
+                      fill="black", anchor="lm", font=self.axis_font)
+
     def draw_shot_graph(self, draw):
         """Draw the weight vs time plot"""
         if len(self.shot_data) < 2:
@@ -234,6 +317,29 @@ class ShotProfile(BaseScreen):
             p1 = map_to_pixels(*self.shot_data[i])
             p2 = map_to_pixels(*self.shot_data[i + 1])
             draw.line([p1, p2], fill="blue", width=2)
+
+    def draw_flowrate_graph(self, draw):
+        """Draw the flowrate vs time plot"""
+        if len(self.flowrate_data) < 2:
+            return  # Need at least 2 points to draw a line
+
+        # Map flowrate coordinates to pixel coordinates
+        def map_flowrate_to_pixels(time, flowrate):
+            # X: time maps from x_min to x_max
+            x_norm = (time - self.x_min) / (self.x_max - self.x_min)
+            x = self.graph_x + x_norm * self.graph_w
+
+            # Y: flowrate maps from flow_min to flow_max (inverted for display)
+            flow_norm = (flowrate - self.flow_min) / (self.flow_max - self.flow_min) if self.flow_max > 0 else 0
+            y = (self.graph_y + self.graph_h) - flow_norm * self.graph_h
+
+            return (x, y)
+
+        # Draw lines connecting consecutive points
+        for i in range(len(self.flowrate_data) - 1):
+            p1 = map_flowrate_to_pixels(*self.flowrate_data[i])
+            p2 = map_flowrate_to_pixels(*self.flowrate_data[i + 1])
+            draw.line([p1, p2], fill="red", width=2)
 
     def draw_info_section(self, draw):
         """Draw the bottom info section with two boxes"""
@@ -278,6 +384,9 @@ class ShotProfile(BaseScreen):
             if current_time is not None and current_weight is not None:
                 self.shot_data.append((current_time, current_weight))
 
+        # Calculate flowrate from weight data
+        self.calculate_flowrate()
+
         # Update axis scaling based on current state
         self.update_axis_scales()
 
@@ -290,6 +399,9 @@ class ShotProfile(BaseScreen):
 
         # Draw shot data
         self.draw_shot_graph(draw)
+
+        # Draw flowrate data
+        self.draw_flowrate_graph(draw)
 
         # Draw info section
         self.draw_info_section(draw)
