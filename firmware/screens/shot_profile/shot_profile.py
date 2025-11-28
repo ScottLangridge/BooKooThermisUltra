@@ -330,10 +330,32 @@ class ShotProfile(BaseScreen):
         weight = self.scale.read_weight()
         current_flowrate = self.scale.read_flowrate()
 
-        # Format values
-        time_text = f"{timer_seconds:.0f}" if timer_seconds is not None else "0"
-        flowrate_text = f"{current_flowrate:.1f}"
-        weight_text = f"{weight:.1f}" if weight is not None else "0.0"
+        # Format values with overflow protection
+        # Time
+        if timer_seconds is None:
+            time_text = "0"
+        elif timer_seconds >= 1000:
+            time_text = ">999"
+        else:
+            time_text = f"{timer_seconds:.0f}"
+
+        # Flowrate
+        if current_flowrate >= 100:
+            flowrate_text = ">99"
+        elif current_flowrate <= -10:
+            flowrate_text = "<-9"
+        else:
+            flowrate_text = f"{current_flowrate:.1f}"
+
+        # Weight
+        if weight is None:
+            weight_text = "0.0"
+        elif weight > 1000:
+            weight_text = ">999"
+        elif weight <= -100:
+            weight_text = "<-99"
+        else:
+            weight_text = f"{weight:.1f}"
 
         # Draw numbers and labels in each box
         # Left box: Timer (seconds)
