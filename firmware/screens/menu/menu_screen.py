@@ -248,6 +248,7 @@ class MenuScreen(BaseScreen):
         self.display.on_up = lambda: asyncio.run_coroutine_threadsafe(on_up(), loop)
         self.display.on_down = lambda: asyncio.run_coroutine_threadsafe(on_down(), loop)
         self.display.on_center = lambda: asyncio.run_coroutine_threadsafe(on_select(), loop)
+        self.display.on_right = lambda: asyncio.run_coroutine_threadsafe(on_select(), loop)
 
     async def loop(self):
         """Main render loop"""
