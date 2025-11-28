@@ -25,6 +25,11 @@ class BookooScale:
         self._timer_running = False
         self._timer_elapsed = 0.0  # Accumulated time when timer is paused
 
+        # Flowrate tracking
+        self._flowrate = 0.0
+        self._weight_history = []  # List of (time, weight) tuples for flowrate calculation
+        self._max_history_size = 50  # Keep last 50 measurements (~5 seconds at 10Hz)
+
     # ----- CONNECTIVITY -----
     async def establish_connection(self):
         print("Establishing connection...")
@@ -72,6 +77,10 @@ class BookooScale:
         current_time = time.time()
         running_time = current_time - self._timer_start_time
         return self._timer_elapsed + running_time
+
+    def read_flowrate(self):
+        """Read current flowrate in g/s"""
+        return self._flowrate
 
     def is_timer_running(self):
         """Check if timer is currently running"""
@@ -187,8 +196,60 @@ class BookooScale:
         raw = (data[7] << 16) | (data[8] << 8) | data[9]
         self._weight = sign * (raw / 100)
 
+        # Update weight history and calculate flowrate
+        current_time = self.read_time()
+        if current_time is not None:
+            self._weight_history.append((current_time, self._weight))
+
+            # Trim history to max size
+            if len(self._weight_history) > self._max_history_size:
+                self._weight_history.pop(0)
+
+            # Calculate flowrate with smoothing
+            self._calculate_flowrate()
+
     async def _poll_weight(self):
         await self._client.start_notify(WEIGHT_UUID, self._on_weight)
+
+    def _calculate_flowrate(self):
+        """Calculate flowrate (g/s) from weight history with smoothing"""
+        if len(self._weight_history) < 2:
+            self._flowrate = 0.0
+            return
+
+        # Calculate raw flowrate for each consecutive pair of points
+        raw_flowrates = []
+        for i in range(len(self._weight_history) - 1):
+            time1, weight1 = self._weight_history[i]
+            time2, weight2 = self._weight_history[i + 1]
+
+            # Calculate change in weight and time
+            delta_weight = weight2 - weight1
+            delta_time = time2 - time1
+
+            # Avoid division by zero
+            if delta_time > 0:
+                flowrate = delta_weight / delta_time  # g/s
+                raw_flowrates.append(flowrate)
+            else:
+                raw_flowrates.append(0)
+
+        if not raw_flowrates:
+            self._flowrate = 0.0
+            return
+
+        # Apply moving average smoothing to reduce noise
+        window_size = 5  # Adjust this value for more/less smoothing
+        # Get the most recent flowrate value and smooth it
+        current_idx = len(raw_flowrates) - 1
+
+        # Calculate window boundaries
+        start_idx = max(0, current_idx - window_size // 2)
+        end_idx = min(len(raw_flowrates), current_idx + window_size // 2 + 1)
+
+        # Average flowrate values in window
+        window_values = raw_flowrates[start_idx:end_idx]
+        self._flowrate = sum(window_values) / len(window_values)
 
     async def _send_command(self, data1, data2, data3, datasum=0x00):
         """Send a 6-byte command to the scale (checksum not required)."""

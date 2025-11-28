@@ -137,48 +137,6 @@ class ShotProfile(BaseScreen):
 
         return ticks
 
-    def calculate_flowrate(self):
-        """Calculate flowrate (g/s) from weight data with smoothing"""
-        self.flowrate_data.clear()
-
-        if len(self.shot_data) < 2:
-            return  # Need at least 2 points to calculate flowrate
-
-        # Calculate raw flowrate for each consecutive pair of points
-        raw_flowrates = []
-        for i in range(len(self.shot_data) - 1):
-            time1, weight1 = self.shot_data[i]
-            time2, weight2 = self.shot_data[i + 1]
-
-            # Calculate change in weight and time
-            delta_weight = weight2 - weight1
-            delta_time = time2 - time1
-
-            # Avoid division by zero
-            if delta_time > 0:
-                flowrate = delta_weight / delta_time  # g/s
-                # Use the midpoint time for the flowrate value
-                mid_time = (time1 + time2) / 2
-                raw_flowrates.append((mid_time, flowrate))
-            else:
-                # If same time, use the first time point with 0 flowrate
-                raw_flowrates.append((time1, 0))
-
-        # Apply moving average smoothing to reduce noise
-        window_size = 5  # Adjust this value for more/less smoothing
-        for i in range(len(raw_flowrates)):
-            # Calculate window boundaries
-            start_idx = max(0, i - window_size // 2)
-            end_idx = min(len(raw_flowrates), i + window_size // 2 + 1)
-
-            # Average flowrate values in window
-            window_values = [f for t, f in raw_flowrates[start_idx:end_idx]]
-            smoothed_flowrate = sum(window_values) / len(window_values)
-
-            # Keep original time
-            time = raw_flowrates[i][0]
-            self.flowrate_data.append((time, smoothed_flowrate))
-
     def update_axis_scales(self):
         """Update axis min/max based on current state and data"""
         if not self.shot_data:
@@ -370,11 +328,7 @@ class ShotProfile(BaseScreen):
         # Get real values from scale
         timer_seconds = self.scale.read_time()
         weight = self.scale.read_weight()
-
-        # Get current flowrate (most recent filtered value)
-        current_flowrate = 0.0
-        if self.flowrate_data:
-            current_flowrate = self.flowrate_data[-1][1]  # Get flowrate from last tuple
+        current_flowrate = self.scale.read_flowrate()
 
         # Format values
         time_text = f"{timer_seconds:.0f}" if timer_seconds is not None else "0"
@@ -405,11 +359,10 @@ class ShotProfile(BaseScreen):
         if self.recording and self.scale.is_timer_running():
             current_time = self.scale.read_time()
             current_weight = self.scale.read_weight()
+            current_flowrate = self.scale.read_flowrate()
             if current_time is not None and current_weight is not None:
                 self.shot_data.append((current_time, current_weight))
-
-        # Calculate flowrate from weight data
-        self.calculate_flowrate()
+                self.flowrate_data.append((current_time, current_flowrate))
 
         # Update axis scaling based on current state
         self.update_axis_scales()
