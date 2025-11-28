@@ -6,6 +6,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 SmartScaleIntegration is a Python application for interfacing with BooKoo Bluetooth smart scales and displaying data on a 240x240 pixel TFT display (Adafruit 1.3" Color TFT Bonnet). The project provides firmware applications for espresso shot profiling and basic scale functions.
 
+## Environment and File Path Handling
+
+**CRITICAL: This project runs on Windows but uses a Unix shell (Git Bash/WSL)**
+
+When interacting with files and paths:
+- The Bash tool runs a Unix shell, NOT Windows cmd/PowerShell
+- ALWAYS use Unix-style commands: `ls`, `find`, `rm`, `rmdir`, etc. (NOT `dir`, `del`)
+- ALWAYS use forward slashes in paths: `src/drivers/Scale/BookooScale.py`
+- Backslashes in paths may appear in output but use forward slashes in commands
+- Prefer platform-agnostic tools when possible: Glob, Grep, Read, Edit, Write
+- Only use Bash for operations that require shell execution (git, python, pytest, etc.)
+
+**Examples of correct path usage:**
+- ✅ `find src/pocs -type f` (Unix command)
+- ✅ `rm -r src/pocs` (Unix command)
+- ✅ `git mv src/old/file.py src/new/file.py` (forward slashes)
+- ❌ `dir /B src\pocs` (Windows command - will fail)
+- ❌ `del src\file.py` (Windows command - will fail)
+
 ## Architecture
 
 ### Three-Layer Architecture
