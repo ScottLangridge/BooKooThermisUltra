@@ -18,4 +18,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
+        # Cleanup already handled by ScreenManager's finally block
         print("\nApplication terminated by user")
+        pass

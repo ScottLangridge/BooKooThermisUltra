@@ -96,19 +96,24 @@ class ScreenManager:
 
     async def start(self):
         """Application entry point - main control loop"""
-        # Phase 1: Connect to scale
-        await self.show_connection_screen()
+        try:
+            # Phase 1: Connect to scale
+            await self.show_connection_screen()
 
-        # Phase 2: Main application loop
-        while self.running:
-            # Show menu and wait for selection
-            await self.show_menu()
+            # Phase 2: Main application loop
+            while self.running:
+                # Show menu and wait for selection
+                await self.show_menu()
 
-            # If user selected a screen (not exit), run it
-            if self.selected_screen:
-                await self.switch_screen(self.selected_screen)
-                # When screen returns, loop back to menu
+                # If user selected a screen (not exit), run it
+                if self.selected_screen:
+                    await self.switch_screen(self.selected_screen)
+                    # When screen returns, loop back to menu
 
-        # Cleanup when exiting
-        print("Exiting application...")
-        await self.scale.disconnect()
+        except KeyboardInterrupt:
+            print("\nInterrupt received, cleaning up...")
+            raise
+        finally:
+            # Cleanup always happens, even on interrupt
+            print("Exiting application...")
+            await self.scale.disconnect()

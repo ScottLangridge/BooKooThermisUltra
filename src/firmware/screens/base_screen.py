@@ -74,6 +74,8 @@ class BaseScreen:
             while self.running:
                 await self.loop()
         except KeyboardInterrupt:
-            print("\nShutting down...")
+            # Stop the screen gracefully, then re-raise to trigger cleanup
+            self.running = False
+            raise
 
         # When running becomes False, loop exits and control returns

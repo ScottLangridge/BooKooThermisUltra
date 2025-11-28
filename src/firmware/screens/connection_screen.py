@@ -80,6 +80,10 @@ class ConnectionScreen:
         This method blocks until connection succeeds, providing visual feedback
         for each attempt. When it returns, the scale is connected and ready.
         """
-        while True:
-            if await self.attempt_connection():
-                return  # Success - caller can transition to next screen
+        try:
+            while True:
+                if await self.attempt_connection():
+                    return  # Success - caller can transition to next screen
+        except KeyboardInterrupt:
+            # Allow interrupt to propagate for graceful shutdown
+            raise
