@@ -34,7 +34,8 @@ class ShotProfile(BaseFirmware):
         self.graph_h = self.graph_height - self.graph_padding_top - self.graph_padding_bottom
 
         # Fonts
-        self.info_font = None
+        self.info_font_large = None  # 32pt for normal values
+        self.info_font_small = None  # 24pt for extreme values
         self.axis_font = None
 
         # Shot data storage
@@ -55,14 +56,17 @@ class ShotProfile(BaseFirmware):
         """Initialize after connection"""
         print("Starting shot profile...")
 
-        # Load font for info display
+        # Load fonts for info display (large and small)
         try:
-            self.info_font = ImageFont.truetype("arial.ttf", 24)
+            self.info_font_large = ImageFont.truetype("arial.ttf", 32)
+            self.info_font_small = ImageFont.truetype("arial.ttf", 24)
         except:
             try:
-                self.info_font = ImageFont.truetype("Arial.ttf", 24)
+                self.info_font_large = ImageFont.truetype("Arial.ttf", 32)
+                self.info_font_small = ImageFont.truetype("Arial.ttf", 24)
             except:
-                self.info_font = ImageFont.load_default()
+                self.info_font_large = ImageFont.load_default()
+                self.info_font_small = ImageFont.load_default()
 
         # Load smaller font for axis labels
         try:
@@ -251,16 +255,23 @@ class ShotProfile(BaseFirmware):
         time_text = f"{timer_seconds:.0f}" if timer_seconds is not None else "0"
         weight_text = f"{weight:.1f}" if weight is not None else "0.0"
 
+        # Select font size based on weight value
+        # Use smaller font for extreme values (<= -100 or > 1000)
+        if weight is not None and (weight <= -100 or weight > 1000):
+            info_font = self.info_font_small
+        else:
+            info_font = self.info_font_large
+
         # Draw numbers in each box
         # Left box: Timer (seconds)
         left_center_x = box_width // 2
         left_center_y = info_y + (self.info_height // 2)
-        draw.text((left_center_x, left_center_y), time_text, fill="black", anchor="mm", font=self.info_font)
+        draw.text((left_center_x, left_center_y), time_text, fill="black", anchor="mm", font=info_font)
 
         # Right box: Weight (grams)
         right_center_x = box_width + (box_width // 2)
         right_center_y = info_y + (self.info_height // 2)
-        draw.text((right_center_x, right_center_y), weight_text, fill="black", anchor="mm", font=self.info_font)
+        draw.text((right_center_x, right_center_y), weight_text, fill="black", anchor="mm", font=info_font)
 
     async def loop(self):
         """Main loop - draw the graph layout"""
