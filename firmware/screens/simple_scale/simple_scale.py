@@ -6,10 +6,10 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
-from base_firmware import BaseFirmware
+from firmware.screens.base_screen import BaseScreen
 
 
-class SimpleScale(BaseFirmware):
+class SimpleScale(BaseScreen):
     """Simple scale display with timer and tare controls"""
 
     def __init__(self):

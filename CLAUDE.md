@@ -16,19 +16,27 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
      - Maintains local timer state synchronized with scale hardware
      - Weight UUID: `0000ff11-0000-1000-8000-00805f9b34fb`
      - Command UUID: `0000ff12-0000-1000-8000-00805f9b34fb`
-   - `IO Devices/IOController.py`: Abstract base class for display hardware (240x240 display, 7 buttons: up/down/left/right/center/A/B)
-   - `IO Devices/VirtualIOController.py`: Flask-based web simulator for development without physical hardware
+   - `IODevices/IOController.py`: Abstract base class for display hardware (240x240 display, 7 buttons: up/down/left/right/center/A/B)
+   - `IODevices/VirtualIOController.py`: Flask-based web simulator for development without physical hardware
      - Runs on http://0.0.0.0:5000/display
      - Auto-refreshes display at 1Hz, provides virtual button interface
 
-2. **Framework Layer** (`screens/base_firmware.py`)
-   - `BaseFirmware`: Async base class providing common functionality for screen applications
-   - Handles scale connection with infinite retry
-   - Manages hardware initialization (scale + display)
-   - Provides splash screen utility
-   - Subclasses implement `setup()` and `loop()` methods
+2. **Framework Layer** (`firmware/screens/`)
+   - `base_screen.py`: Contains `BaseScreen` async base class providing common functionality for screen applications
+     - Handles scale connection with infinite retry
+     - Manages hardware initialization (scale + display)
+     - Provides splash screen utility
+     - Subclasses implement `setup()` and `loop()` methods
+   - `menu/`: Menu system for navigation between applications
+     - `menu_screen.py`: `MenuScreen` class for rendering paginated menus with header/footer
+       - Supports up/down/center button navigation
+       - Configurable items per page, header/footer heights
+       - Auto-paging when scrolling beyond visible items
+     - `menu_option.py`: `MenuOption` class representing selectable menu items
+       - Supports both sync and async callbacks
+       - Configurable label and icon
 
-3. **Application Layer** (`screens/`)
+3. **Application Layer** (`firmware/screens/`)
    - `simple_scale/simple_scale.py`: Basic weight display with timer controls (A: start/stop timer, B: tare)
    - `shot_profile/shot_profile.py`: Espresso shot profiling with real-time graphing
      - Graphs weight vs time with dynamic axis scaling
@@ -48,11 +56,14 @@ SmartScaleIntegration is a Python application for interfacing with BooKoo Blueto
 ### Running Applications
 
 ```bash
+# Run the menu system (main entry point)
+python pocs/menu_poc.py
+
 # Run the simple scale firmware
-python screens/simple_scale/simple_scale.py
+python firmware/screens/simple_scale/simple_scale.py
 
 # Run the shot profiling firmware
-python screens/shot_profile/shot_profile.py
+python firmware/screens/shot_profile/shot_profile.py
 
 # Run proof-of-concept demos
 python pocs/scale_poc.py          # Scale communication test
@@ -101,12 +112,13 @@ The scale maintains timer state both on the device and locally. The local state 
 ## Important Notes
 
 - Python 3.10+ required
-- All screen applications inherit from `BaseFirmware`
+- All screen applications inherit from `BaseScreen` (located in `firmware/screens/base_screen.py`)
 - Display images must be exactly 240x240 pixels (RGB mode)
 - Button callbacks run in Flask's thread context, use `asyncio.run_coroutine_threadsafe()` for async operations
 - Scale discovery looks for devices with names starting with "bookoo" (case-insensitive)
 - Weight data includes checksum validation and sign handling
-- Path manipulation in screen apps uses `sys.path.append(str(Path(__file__).parent.parent))` to enable imports
+- Path manipulation uses `sys.path.append(str(Path(__file__).parent.parent))` to enable imports from parent directories
+- Menu system supports both synchronous and asynchronous callbacks via `inspect.iscoroutinefunction()`
 
 ## Dependencies
 

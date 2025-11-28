@@ -7,11 +7,11 @@ from math import ceil
 sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
-from screens.base_firmware import BaseFirmware
-from screens.menu.menu_option import MenuOption
+from firmware.screens.base_screen import BaseScreen
+from firmware.screens.menu.menu_option import MenuOption
 
 
-class MenuScreen(BaseFirmware):
+class MenuScreen(BaseScreen):
     """Main menu firmware that handles rendering and navigation"""
 
     def __init__(self, title: str, options: list[MenuOption], items_per_page: int = 5,

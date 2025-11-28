@@ -1,6 +1,11 @@
 import asyncio
+import sys
+from pathlib import Path
 
-from BookooScale import BookooScale
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent))
+
+from drivers.Scale.BookooScale import BookooScale
 
 
 async def main():

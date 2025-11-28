@@ -5,8 +5,8 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
-from screens.menu.menu_screen import MenuScreen
-from screens.menu.menu_option import MenuOption
+from firmware.screens.menu.menu_screen import MenuScreen
+from firmware.screens.menu.menu_option import MenuOption
 
 
 # Example callback functions demonstrating different patterns

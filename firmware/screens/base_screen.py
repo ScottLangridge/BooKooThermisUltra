@@ -10,7 +10,7 @@ from drivers.Scale.BookooScale import BookooScale
 from drivers.IODevices.VirtualIOController import VirtualIOController
 
 
-class BaseFirmware:
+class BaseScreen:
     """Base class for screens applications with scale and display"""
 
     def __init__(self):
