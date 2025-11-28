@@ -1,13 +1,12 @@
-import asyncio
 import sys
 from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
-from drivers.Scale.BookooScale import BookooScale
-from drivers.IODevices.VirtualIOController import VirtualIOController
-from firmware.screens.connection_screen import ConnectionScreen
+from src.drivers.Scale.BookooScale import BookooScale
+from src.drivers.IODevices.VirtualIOController import VirtualIOController
+from src.firmware.screens.connection_screen import ConnectionScreen
 
 
 class ScreenManager:
@@ -58,10 +57,10 @@ class ScreenManager:
         Show main menu and wait for selection.
         Menu callbacks should set self.selected_screen to indicate choice.
         """
-        from firmware.screens.menu.menu_screen import MenuScreen
-        from firmware.screens.menu.menu_option import MenuOption
-        from firmware.screens.simple_scale.simple_scale import SimpleScale
-        from firmware.screens.shot_profile.shot_profile import ShotProfile
+        from src.firmware.screens.menu.menu_screen import MenuScreen
+        from src.firmware.screens.menu.menu_option import MenuOption
+        from src.firmware.screens.simple_scale.simple_scale import SimpleScale
+        from src.firmware.screens.shot_profile.shot_profile import ShotProfile
 
         # Reset selection
         self.selected_screen = None

@@ -6,9 +6,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
-from firmware.screens.base_screen import BaseScreen
-from drivers.Scale.BookooScale import BookooScale
-from drivers.IODevices.IOController import IOController
+from src.firmware.screens.base_screen import BaseScreen
+from src.drivers.Scale.BookooScale import BookooScale
+from src.drivers.IODevices.IOController import IOController
 
 
 class ShotProfile(BaseScreen):
@@ -414,8 +414,8 @@ class ShotProfile(BaseScreen):
 if __name__ == "__main__":
     async def main():
         """Standalone entry point for testing"""
-        from drivers.IODevices.VirtualIOController import VirtualIOController
-        from firmware.screens.connection_screen import ConnectionScreen
+        from src.drivers.IODevices.VirtualIOController import VirtualIOController
+        from src.firmware.screens.connection_screen import ConnectionScreen
 
         scale = BookooScale()
         display = VirtualIOController()

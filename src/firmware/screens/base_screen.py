@@ -1,4 +1,3 @@
-import asyncio
 import sys
 from pathlib import Path
 
@@ -6,8 +5,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
-from drivers.Scale.BookooScale import BookooScale
-from drivers.IODevices.IOController import IOController
+from src.drivers.Scale.BookooScale import BookooScale
+from src.drivers.IODevices.IOController import IOController
 
 
 class BaseScreen:

@@ -5,7 +5,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
-from drivers.Scale.BookooScale import BookooScale
+from src.drivers.Scale.BookooScale import BookooScale
 
 
 async def main():

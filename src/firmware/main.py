@@ -5,7 +5,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent))
 
-from firmware.screens.screen_manager import ScreenManager
+from src.firmware.screens.screen_manager import ScreenManager
 
 
 async def main():

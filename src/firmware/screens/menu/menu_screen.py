@@ -7,10 +7,10 @@ from math import ceil
 sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
-from firmware.screens.base_screen import BaseScreen
-from firmware.screens.menu.menu_option import MenuOption
-from drivers.Scale.BookooScale import BookooScale
-from drivers.IODevices.IOController import IOController
+from src.firmware.screens.base_screen import BaseScreen
+from src.firmware.screens.menu.menu_option import MenuOption
+from src.drivers.Scale.BookooScale import BookooScale
+from src.drivers.IODevices.IOController import IOController
 
 
 class MenuScreen(BaseScreen):

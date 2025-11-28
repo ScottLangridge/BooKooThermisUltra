@@ -5,8 +5,8 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
-from firmware.screens.menu.menu_screen import MenuScreen
-from firmware.screens.menu.menu_option import MenuOption
+from src.firmware.screens.menu.menu_screen import MenuScreen
+from src.firmware.screens.menu.menu_option import MenuOption
 
 
 # Example callback functions demonstrating different patterns
@@ -53,9 +53,9 @@ options = [
 if __name__ == "__main__":
     async def main():
         """Standalone entry point for testing menu"""
-        from drivers.Scale.BookooScale import BookooScale
-        from drivers.IODevices.VirtualIOController import VirtualIOController
-        from firmware.screens.connection_screen import ConnectionScreen
+        from src.drivers.Scale.BookooScale import BookooScale
+        from src.drivers.IODevices.VirtualIOController import VirtualIOController
+        from src.firmware.screens.connection_screen import ConnectionScreen
 
         scale = BookooScale()
         display = VirtualIOController()
