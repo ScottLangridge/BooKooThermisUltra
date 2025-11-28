@@ -32,6 +32,10 @@ class ShotProfile(BaseFirmware):
         # Fonts
         self.info_font = None
 
+        # Shot data storage
+        self.shot_data = []      # List of (time, weight) tuples
+        self.recording = False   # Track if we're actively recording
+
     async def setup(self):
         """Initialize after connection"""
         print("Starting shot profile...")
@@ -51,13 +55,18 @@ class ShotProfile(BaseFirmware):
         # Button A: Start/Stop Timer
         async def on_button_a():
             if self.scale.is_timer_running():
+                # Stop recording
                 await self.scale.send_timer_stop()
+                self.recording = False
             else:
+                # Start recording
                 await self.scale.send_timer_start()
+                self.recording = True
 
         # Button B: Reset Timer
         async def on_button_b():
             await self.scale.send_timer_reset()
+            self.shot_data.clear()  # Clear graph data
 
         # Set up button callbacks using run_coroutine_threadsafe for cross-thread async
         self.display.on_a = lambda: asyncio.run_coroutine_threadsafe(on_button_a(), loop)
@@ -76,6 +85,41 @@ class ShotProfile(BaseFirmware):
         x_end = self.graph_x + self.graph_w
         y_pos = self.graph_y + self.graph_h
         draw.line([(x_start, y_pos), (x_end, y_pos)], fill="black", width=2)
+
+    def draw_shot_graph(self, draw):
+        """Draw the weight vs time plot"""
+        if len(self.shot_data) < 2:
+            return  # Need at least 2 points to draw a line
+
+        # Find data ranges for scaling
+        times = [t for t, w in self.shot_data]
+        weights = [w for t, w in self.shot_data]
+
+        time_min = min(times)
+        time_max = max(times)
+        weight_min = min(weights)
+        weight_max = max(weights)
+
+        # Add padding to ranges (avoid divide by zero)
+        time_range = max(time_max - time_min, 1)
+        weight_range = max(weight_max - weight_min, 1)
+
+        # Map data coordinates to pixel coordinates
+        def map_to_pixels(time, weight):
+            # X: time maps to graph_x to graph_x + graph_w
+            x = self.graph_x + ((time - time_min) / time_range) * self.graph_w
+
+            # Y: weight maps to graph_y + graph_h (bottom) to graph_y (top)
+            # Note: y coordinates are inverted (0 is top)
+            y = (self.graph_y + self.graph_h) - ((weight - weight_min) / weight_range) * self.graph_h
+
+            return (x, y)
+
+        # Draw lines connecting consecutive points
+        for i in range(len(self.shot_data) - 1):
+            p1 = map_to_pixels(*self.shot_data[i])
+            p2 = map_to_pixels(*self.shot_data[i + 1])
+            draw.line([p1, p2], fill="blue", width=2)
 
     def draw_info_section(self, draw):
         """Draw the bottom info section with two boxes"""
@@ -113,12 +157,22 @@ class ShotProfile(BaseFirmware):
 
     async def loop(self):
         """Main loop - draw the graph layout"""
+        # Collect data if recording
+        if self.recording and self.scale.is_timer_running():
+            current_time = self.scale.read_time()
+            current_weight = self.scale.read_weight()
+            if current_time is not None and current_weight is not None:
+                self.shot_data.append((current_time, current_weight))
+
         # Create display image
         img = Image.new("RGB", (self.width, self.height), "white")
         draw = ImageDraw.Draw(img)
 
         # Draw graph axes
         self.draw_graph_axes(draw)
+
+        # Draw shot data
+        self.draw_shot_graph(draw)
 
         # Draw info section
         self.draw_info_section(draw)
