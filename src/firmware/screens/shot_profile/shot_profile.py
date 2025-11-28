@@ -383,8 +383,8 @@ class ShotProfile(BaseScreen):
             current_weight = self.scale.read_weight()
             current_flowrate = self.scale.read_flowrate()
             if current_time is not None and current_weight is not None:
-                self.shot_data.append((current_time, current_weight))
-                self.flowrate_data.append((current_time, current_flowrate))
+                self.shot_data.append((current_time, max(0, current_weight)))
+                self.flowrate_data.append((current_time, max(0, current_flowrate)))
 
         # Update axis scaling based on current state
         self.update_axis_scales()
