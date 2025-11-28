@@ -7,7 +7,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
 from drivers.Scale.BookooScale import BookooScale
-from drivers.UI.VirtualIOController import VirtualIOController
+from drivers.IODevices.VirtualIOController import VirtualIOController
 
 
 class BaseFirmware:
