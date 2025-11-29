@@ -284,7 +284,7 @@ class ShotProfile(BaseScreen):
         for i in range(len(self.shot_data) - 1):
             p1 = map_to_pixels(*self.shot_data[i])
             p2 = map_to_pixels(*self.shot_data[i + 1])
-            draw.line([p1, p2], fill=self.colorscheme.secondary_accent, width=2)
+            draw.line([p1, p2], fill=self.colorscheme.primary_accent, width=2)
 
     def draw_flowrate_graph(self, draw):
         """Draw the flowrate vs time plot"""
@@ -307,7 +307,7 @@ class ShotProfile(BaseScreen):
         for i in range(len(self.flowrate_data) - 1):
             p1 = map_flowrate_to_pixels(*self.flowrate_data[i])
             p2 = map_flowrate_to_pixels(*self.flowrate_data[i + 1])
-            draw.line([p1, p2], fill=self.colorscheme.tertiary_accent, width=2)
+            draw.line([p1, p2], fill=self.colorscheme.secondary_accent, width=2)
 
     def draw_info_section(self, draw):
         """Draw the bottom info section with three boxes"""
