@@ -7,7 +7,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from PIL import Image, ImageDraw, ImageFont
 from src.drivers.Scale.BookooScale import BookooScale
 from src.drivers.IODevices.IOController import IOController
-from src.settings import SettingsManager
+from src.settings.settings_manager import SettingsManager
 
 
 class BaseScreen:
