@@ -45,6 +45,10 @@ class ShotProfile(BaseScreen):
         self.flowrate_data = []  # List of (time, flowrate) tuples (g/s)
         self.recording = False   # Track if we're actively recording
 
+        # Frozen values for completed shots
+        self.frozen_weight = None    # Weight when shot completes
+        self.frozen_flowrate = None  # Flowrate when shot completes
+
         # Axis scaling state
         self.x_min = 0      # X-axis minimum (time in seconds)
         self.x_max = 30     # X-axis maximum (default 30s)
@@ -95,13 +99,19 @@ class ShotProfile(BaseScreen):
         # Button A: Start/Stop Timer
         async def on_button_a():
             if self.scale.is_timer_running():
-                # Stop recording
+                # Stop recording and freeze current values
                 await self.scale.send_timer_stop()
                 self.recording = False
+                # Capture frozen values at the moment of stopping
+                self.frozen_weight = self.scale.read_weight()
+                self.frozen_flowrate = self.scale.read_flowrate()
             else:
                 # Start recording
                 await self.scale.send_tare_and_timer_start()
                 self.recording = True
+                # Clear frozen values when starting a new shot
+                self.frozen_weight = None
+                self.frozen_flowrate = None
 
         # Button B: Reset Timer
         async def on_button_b():
@@ -112,6 +122,9 @@ class ShotProfile(BaseScreen):
             self.x_max = self.default_x_max
             self.y_max = self.default_y_max
             self.flow_max = self.default_flow_max
+            # Clear frozen values
+            self.frozen_weight = None
+            self.frozen_flowrate = None
 
         # LEFT Button: Return to menu
         async def on_left():
@@ -325,10 +338,16 @@ class ShotProfile(BaseScreen):
         # Draw border around whole display
         draw.rectangle([(0, 0), (self.width-1, self.height-1)], outline="black", width=2)
 
-        # Get real values from scale
+        # Get values from scale or use frozen values if shot is complete
         timer_seconds = self.scale.read_time()
-        weight = self.scale.read_weight()
-        current_flowrate = self.scale.read_flowrate()
+
+        # Use frozen values if available (shot completed), otherwise use live values
+        if self.frozen_weight is not None:
+            weight = self.frozen_weight
+            current_flowrate = self.frozen_flowrate
+        else:
+            weight = self.scale.read_weight()
+            current_flowrate = self.scale.read_flowrate()
 
         # Format values with overflow protection
         # Time
