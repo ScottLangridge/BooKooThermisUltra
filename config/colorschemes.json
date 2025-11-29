@@ -1,0 +1,62 @@
+{
+  "Dark": {
+    "background": "#1e1e1e",
+    "foreground": "#d4d4d4",
+    "primary_accent": "#0e639c",
+    "secondary_accent": "#4ec9b0",
+    "tertiary_accent": "#ce9178",
+    "success": "#4ec9b0",
+    "error": "#f48771",
+    "info": "#569cd6"
+  },
+  "Light": {
+    "background": "#ffffff",
+    "foreground": "#000000",
+    "primary_accent": "#0066cc",
+    "secondary_accent": "#0099cc",
+    "tertiary_accent": "#cc6600",
+    "success": "#00aa00",
+    "error": "#cc0000",
+    "info": "#0066cc"
+  },
+  "Espresso": {
+    "background": "#2b1d16",
+    "foreground": "#e8d5b7",
+    "primary_accent": "#8b6f47",
+    "secondary_accent": "#c97a3a",
+    "tertiary_accent": "#6b4423",
+    "success": "#8b6f47",
+    "error": "#b33c20",
+    "info": "#c97a3a"
+  },
+  "Ocean": {
+    "background": "#0a1929",
+    "foreground": "#b3e5fc",
+    "primary_accent": "#00acc1",
+    "secondary_accent": "#29b6f6",
+    "tertiary_accent": "#26c6da",
+    "success": "#26a69a",
+    "error": "#ef5350",
+    "info": "#42a5f5"
+  },
+  "Sunset": {
+    "background": "#1a0a1f",
+    "foreground": "#ffe0b2",
+    "primary_accent": "#ff6f00",
+    "secondary_accent": "#ff9800",
+    "tertiary_accent": "#ab47bc",
+    "success": "#ffb74d",
+    "error": "#e53935",
+    "info": "#ff9800"
+  },
+  "Forest": {
+    "background": "#1b2a1f",
+    "foreground": "#e8f5e9",
+    "primary_accent": "#558b2f",
+    "secondary_accent": "#7cb342",
+    "tertiary_accent": "#8d6e63",
+    "success": "#66bb6a",
+    "error": "#d84315",
+    "info": "#7cb342"
+  }
+}

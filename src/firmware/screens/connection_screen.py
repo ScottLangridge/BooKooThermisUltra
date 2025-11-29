@@ -8,6 +8,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from PIL import Image, ImageDraw, ImageFont
 from src.drivers.Scale.BookooScale import BookooScale
 from src.drivers.IODevices.IOController import IOController
+from src.settings.settings_manager import SettingsManager
 
 
 class ConnectionScreen:
@@ -24,9 +25,22 @@ class ConnectionScreen:
         self.display = display
         self.scale = scale
 
-    def show_splash(self, message, color="black"):
-        """Display connection status message"""
-        img = Image.new("RGB", (240, 240), "white")
+        # Initialize settings and colorscheme
+        self._settings_manager = SettingsManager.get_instance()
+        self.colorscheme = self._settings_manager.get_colorscheme()
+
+    def show_splash(self, message, color=None):
+        """
+        Display connection status message
+
+        Args:
+            message: Text to display
+            color: Text color (hex or None to use foreground from colorscheme)
+        """
+        if color is None:
+            color = self.colorscheme.foreground
+
+        img = Image.new("RGB", (240, 240), self.colorscheme.background)
         draw = ImageDraw.Draw(img)
 
         # Try to load a large font, fall back to default if not available
@@ -57,18 +71,18 @@ class ConnectionScreen:
         Returns:
             True if connection succeeded, False otherwise
         """
-        self.show_splash("Connecting...", "blue")
+        self.show_splash("Connecting...", self.colorscheme.info)
         print("Connecting to scale...")
 
         connected = await self.scale.establish_connection()
 
         if not connected:
             print("Failed to connect to scale")
-            self.show_splash("Connection\nFailed", "red")
+            self.show_splash("Connection\nFailed", self.colorscheme.error)
             await asyncio.sleep(1)
         else:
             print("Connected!")
-            self.show_splash("Connected!", "green")
+            self.show_splash("Connected!", self.colorscheme.success)
             await asyncio.sleep(0.5)
 
         return connected
