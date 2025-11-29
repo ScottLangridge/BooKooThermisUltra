@@ -325,10 +325,17 @@ class ShotProfile(BaseScreen):
         # Draw border around whole display
         draw.rectangle([(0, 0), (self.width-1, self.height-1)], outline="black", width=2)
 
-        # Get real values from scale
+        # Get values from scale
         timer_seconds = self.scale.read_time()
-        weight = self.scale.read_weight()
         current_flowrate = self.scale.read_flowrate()
+
+        # Use frozen weight from shot_data if recording stopped, otherwise use live value
+        if not self.recording and self.shot_data:
+            # Shot completed - use last recorded weight
+            weight = self.shot_data[-1][1]
+        else:
+            # Recording or no data - use live value
+            weight = self.scale.read_weight()
 
         # Format values with overflow protection
         # Time
