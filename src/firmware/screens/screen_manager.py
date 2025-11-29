@@ -75,6 +75,11 @@ class ScreenManager:
             self.selected_screen = ShotProfile
             self.current_screen.stop()
 
+        def select_settings():
+            from src.firmware.screens.settings_screen import SettingsScreen
+            self.selected_screen = SettingsScreen
+            self.current_screen.stop()
+
         async def reconnect():
             await self.show_connection_screen()
 
@@ -85,6 +90,7 @@ class ScreenManager:
         options = [
             MenuOption("Simple Scale", callback=select_simple_scale),
             MenuOption("Shot Profile", callback=select_shot_profile),
+            MenuOption("Settings", callback=select_settings),
             MenuOption("Reconnect", callback=reconnect),
             MenuOption("Exit", callback=exit_app),
         ]

@@ -91,14 +91,14 @@ class MenuScreen(BaseScreen):
 
     def draw_header(self, draw):
         """Render title section"""
-        # Fill header background (white)
-        draw.rectangle([(0, 0), (self.width, self.header_height)], fill="white")
+        # Fill header background
+        draw.rectangle([(0, 0), (self.width, self.header_height)], fill=self.colorscheme.background)
 
         # Draw title text (centered)
         draw.text(
             (self.width // 2, self.header_height // 2),
             self.title,
-            fill="black",
+            fill=self.colorscheme.foreground,
             anchor="mm",
             font=self.title_font
         )
@@ -112,7 +112,7 @@ class MenuScreen(BaseScreen):
         draw.text(
             (self.width // 2, footer_y + self.footer_height // 2),
             page_text,
-            fill="black",
+            fill=self.colorscheme.foreground,
             anchor="mm",
             font=self.footer_font
         )
@@ -120,8 +120,8 @@ class MenuScreen(BaseScreen):
     def draw_option_row(self, draw, option: MenuOption, y_position: int, is_highlighted: bool):
         """Render single menu item"""
         # Determine colors
-        bg_color = "black" if is_highlighted else "white"
-        text_color = "white" if is_highlighted else "black"
+        bg_color = self.colorscheme.primary_accent if is_highlighted else self.colorscheme.background
+        text_color = self.colorscheme.background if is_highlighted else self.colorscheme.foreground
 
         # Draw background
         draw.rectangle(
@@ -155,7 +155,7 @@ class MenuScreen(BaseScreen):
             draw.text(
                 (self.width // 2, y_center),
                 "No options available",
-                fill="black",
+                fill=self.colorscheme.foreground,
                 anchor="mm",
                 font=self.option_font
             )
@@ -232,7 +232,7 @@ class MenuScreen(BaseScreen):
     async def loop(self):
         """Main render loop"""
         # Create display image
-        img = Image.new("RGB", (self.width, self.height), "white")
+        img = Image.new("RGB", (self.width, self.height), self.colorscheme.background)
         draw = ImageDraw.Draw(img)
 
         # Render all sections

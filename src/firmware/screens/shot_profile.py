@@ -200,13 +200,13 @@ class ShotProfile(BaseScreen):
         y_start = self.graph_y
         y_end = self.graph_y + self.graph_h
         x_pos = self.graph_x
-        draw.line([(x_pos, y_start), (x_pos, y_end)], fill="black", width=2)
+        draw.line([(x_pos, y_start), (x_pos, y_end)], fill=self.colorscheme.foreground, width=2)
 
         # X-axis line
         x_start = self.graph_x
         x_end = self.graph_x + self.graph_w
         y_pos = self.graph_y + self.graph_h
-        draw.line([(x_start, y_pos), (x_end, y_pos)], fill="black", width=2)
+        draw.line([(x_start, y_pos), (x_end, y_pos)], fill=self.colorscheme.foreground, width=2)
 
         # Y-axis ticks and labels (grams) - use nice multiples of 5
         y_ticks = self.calculate_ticks(self.y_min, self.y_max)
@@ -218,12 +218,12 @@ class ShotProfile(BaseScreen):
             # Draw tick mark
             tick_length = 5
             draw.line([(x_pos - tick_length, pixel_y), (x_pos, pixel_y)],
-                      fill="black", width=1)
+                      fill=self.colorscheme.foreground, width=1)
 
             # Draw label (to the left of tick)
             label = f"{int(value)}"
             draw.text((x_pos - tick_length - 3, pixel_y), label,
-                      fill="black", anchor="rm", font=self.axis_font)
+                      fill=self.colorscheme.foreground, anchor="rm", font=self.axis_font)
 
         # X-axis ticks and labels (seconds) - use nice multiples of 5
         x_ticks = self.calculate_ticks(self.x_min, self.x_max, 10)
@@ -235,16 +235,16 @@ class ShotProfile(BaseScreen):
             # Draw tick mark
             tick_length = 5
             draw.line([(pixel_x, y_pos), (pixel_x, y_pos + tick_length)],
-                      fill="black", width=1)
+                      fill=self.colorscheme.foreground, width=1)
 
             # Draw label (below tick)
             label = f"{int(value)}"
             draw.text((pixel_x, y_pos + tick_length + 2), label,
-                      fill="black", anchor="mt", font=self.axis_font)
+                      fill=self.colorscheme.foreground, anchor="mt", font=self.axis_font)
 
         # Right Y-axis for flowrate (g/s)
         right_x_pos = self.graph_x + self.graph_w
-        draw.line([(right_x_pos, y_start), (right_x_pos, y_end)], fill="black", width=1)
+        draw.line([(right_x_pos, y_start), (right_x_pos, y_end)], fill=self.colorscheme.foreground, width=1)
 
         # Flowrate axis ticks and labels
         flow_ticks = self.calculate_ticks(self.flow_min, self.flow_max)
@@ -256,12 +256,12 @@ class ShotProfile(BaseScreen):
             # Draw tick mark
             tick_length = 5
             draw.line([(right_x_pos, pixel_y), (right_x_pos + tick_length, pixel_y)],
-                      fill="black", width=1)
+                      fill=self.colorscheme.foreground, width=1)
 
             # Draw label (to the right of tick)
             label = f"{int(value)}"
             draw.text((right_x_pos + tick_length + 3, pixel_y), label,
-                      fill="black", anchor="lm", font=self.axis_font)
+                      fill=self.colorscheme.foreground, anchor="lm", font=self.axis_font)
 
     def draw_shot_graph(self, draw):
         """Draw the weight vs time plot"""
@@ -284,7 +284,7 @@ class ShotProfile(BaseScreen):
         for i in range(len(self.shot_data) - 1):
             p1 = map_to_pixels(*self.shot_data[i])
             p2 = map_to_pixels(*self.shot_data[i + 1])
-            draw.line([p1, p2], fill="blue", width=2)
+            draw.line([p1, p2], fill=self.colorscheme.secondary_accent, width=2)
 
     def draw_flowrate_graph(self, draw):
         """Draw the flowrate vs time plot"""
@@ -307,7 +307,7 @@ class ShotProfile(BaseScreen):
         for i in range(len(self.flowrate_data) - 1):
             p1 = map_flowrate_to_pixels(*self.flowrate_data[i])
             p2 = map_flowrate_to_pixels(*self.flowrate_data[i + 1])
-            draw.line([p1, p2], fill="red", width=2)
+            draw.line([p1, p2], fill=self.colorscheme.tertiary_accent, width=2)
 
     def draw_info_section(self, draw):
         """Draw the bottom info section with three boxes"""
@@ -316,14 +316,14 @@ class ShotProfile(BaseScreen):
 
         # Draw dividing lines
         # Horizontal line separating graph from info
-        draw.line([(0, info_y), (self.width, info_y)], fill="black", width=2)
+        draw.line([(0, info_y), (self.width, info_y)], fill=self.colorscheme.foreground, width=2)
 
         # Vertical lines dividing the three info boxes
-        draw.line([(box_width, info_y), (box_width, self.height)], fill="black", width=2)
-        draw.line([(box_width * 2, info_y), (box_width * 2, self.height)], fill="black", width=2)
+        draw.line([(box_width, info_y), (box_width, self.height)], fill=self.colorscheme.foreground, width=2)
+        draw.line([(box_width * 2, info_y), (box_width * 2, self.height)], fill=self.colorscheme.foreground, width=2)
 
         # Draw border around whole display
-        draw.rectangle([(0, 0), (self.width-1, self.height-1)], outline="black", width=2)
+        draw.rectangle([(0, 0), (self.width-1, self.height-1)], outline=self.colorscheme.foreground, width=2)
 
         # Get real values from scale
         timer_seconds = self.scale.read_time()
@@ -362,18 +362,18 @@ class ShotProfile(BaseScreen):
         left_center_x = box_width // 2
         value_y = info_y + (self.info_height // 2) - 6
         label_y = info_y + (self.info_height // 2) + 19
-        draw.text((left_center_x, value_y), time_text, fill="black", anchor="mm", font=self.info_font)
-        draw.text((left_center_x, label_y), "Time (s)", fill="black", anchor="mm", font=self.label_font)
+        draw.text((left_center_x, value_y), time_text, fill=self.colorscheme.foreground, anchor="mm", font=self.info_font)
+        draw.text((left_center_x, label_y), "Time (s)", fill=self.colorscheme.foreground, anchor="mm", font=self.label_font)
 
         # Middle box: Flowrate (g/s)
         middle_center_x = box_width + (box_width // 2)
-        draw.text((middle_center_x, value_y), flowrate_text, fill="black", anchor="mm", font=self.info_font)
-        draw.text((middle_center_x, label_y), "Flow (g/s)", fill="black", anchor="mm", font=self.label_font)
+        draw.text((middle_center_x, value_y), flowrate_text, fill=self.colorscheme.foreground, anchor="mm", font=self.info_font)
+        draw.text((middle_center_x, label_y), "Flow (g/s)", fill=self.colorscheme.foreground, anchor="mm", font=self.label_font)
 
         # Right box: Weight (grams)
         right_center_x = box_width * 2 + (box_width // 2)
-        draw.text((right_center_x, value_y), weight_text, fill="black", anchor="mm", font=self.info_font)
-        draw.text((right_center_x, label_y), "Weight (g)", fill="black", anchor="mm", font=self.label_font)
+        draw.text((right_center_x, value_y), weight_text, fill=self.colorscheme.foreground, anchor="mm", font=self.info_font)
+        draw.text((right_center_x, label_y), "Weight (g)", fill=self.colorscheme.foreground, anchor="mm", font=self.label_font)
 
     async def loop(self):
         """Main loop - draw the graph layout"""
@@ -390,7 +390,7 @@ class ShotProfile(BaseScreen):
         self.update_axis_scales()
 
         # Create display image
-        img = Image.new("RGB", (self.width, self.height), "white")
+        img = Image.new("RGB", (self.width, self.height), self.colorscheme.background)
         draw = ImageDraw.Draw(img)
 
         # Draw graph axes

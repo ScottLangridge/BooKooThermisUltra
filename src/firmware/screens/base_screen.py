@@ -7,6 +7,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from PIL import Image, ImageDraw, ImageFont
 from src.drivers.Scale.BookooScale import BookooScale
 from src.drivers.IODevices.IOController import IOController
+from src.settings import SettingsManager
 
 
 class BaseScreen:
@@ -24,13 +25,30 @@ class BaseScreen:
         self.display = display
         self.running = False
 
+        # Initialize settings and colorscheme
+        self._settings_manager = SettingsManager.get_instance()
+        self.colorscheme = self._settings_manager.get_colorscheme()
+
+    def refresh_colorscheme(self):
+        """Reload colorscheme from settings (call after settings change)"""
+        self.colorscheme = self._settings_manager.get_colorscheme()
+
     def stop(self):
         """Signal the screen to stop and return control voluntarily"""
         self.running = False
 
-    def show_splash(self, message, color="black"):
-        """Display a message on the screen"""
-        img = Image.new("RGB", (240, 240), "white")
+    def show_splash(self, message, color=None):
+        """
+        Display a message on the screen
+
+        Args:
+            message: Text to display (supports multi-line with \\n)
+            color: Text color (hex or None to use foreground from colorscheme)
+        """
+        if color is None:
+            color = self.colorscheme.foreground
+
+        img = Image.new("RGB", (240, 240), self.colorscheme.background)
         draw = ImageDraw.Draw(img)
 
         # Try to load a large font, fall back to default if not available

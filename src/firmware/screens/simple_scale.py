@@ -70,20 +70,20 @@ class SimpleScale(BaseScreen):
         weight = self.scale.read_weight()
 
         # Create display image
-        img = Image.new("RGB", (240, 240), "white")
+        img = Image.new("RGB", (240, 240), self.colorscheme.background)
         draw = ImageDraw.Draw(img)
 
         # Draw weight in center with large font
         if weight is not None:
             weight_text = f"{weight:.1f}g"
-            draw.text((120, 120), weight_text, fill="black", anchor="mm", font=self.weight_font)
+            draw.text((120, 120), weight_text, fill=self.colorscheme.foreground, anchor="mm", font=self.weight_font)
         else:
-            draw.text((120, 120), "No reading", fill="red", anchor="mm", font=self.weight_font)
+            draw.text((120, 120), "No reading", fill=self.colorscheme.error, anchor="mm", font=self.weight_font)
 
         # Draw button hints at bottom
         timer_status = "running" if self.timer_running else "stopped"
         hint_text = f"A: Timer ({timer_status})  |  B: Tare"
-        draw.text((120, 220), hint_text, fill="gray", anchor="mm", font=self.hint_font)
+        draw.text((120, 220), hint_text, fill=self.colorscheme.foreground, anchor="mm", font=self.hint_font)
 
         # Update display
         self.display.draw(img)
