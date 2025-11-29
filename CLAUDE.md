@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 SmartScaleIntegration is a Python application that interfaces with BooKoo Bluetooth smart scales and displays data on a 240x240 pixel TFT display (Adafruit 1.3" Color TFT Bonnet). The project provides a menu-driven firmware system with multiple applications for espresso shot profiling and basic scale functions.
 
+## Obsidian Vault Access
+
+Claude has permanent access to the Obsidian vault folder for this project:
+- **Path:** `C:\Users\scott\Documents\Obsidian Vaults\Scott's Vault\Projects\Smart Scale Integration`
+- **Purpose:** This vault is used for project planning, documentation, and design notes
+- **Note:** When the user refers to "scratch" or "scratches", they are referring to this Obsidian vault folder (specifically the Scratch subfolder)
+- Planning documents and project notes should be maintained in this location alongside the code repository
+
 ## Environment and File Path Handling
 
 **CRITICAL: This project runs on Windows but uses a Unix shell (Git Bash/WSL)**
