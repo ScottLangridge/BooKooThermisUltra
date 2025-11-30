@@ -198,7 +198,7 @@ class MenuScreen(InteractiveScreen):
     async def loop(self):
         """Main render loop"""
         # Create display image
-        img = Image.new("RGB", (self.display.width, self.display.height), "white")
+        img = self.create_canvas()
         draw = ImageDraw.Draw(img)
 
         # Render all sections

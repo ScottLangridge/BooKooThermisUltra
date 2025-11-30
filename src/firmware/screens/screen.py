@@ -29,6 +29,25 @@ class Screen(ABC):
         # Future: Colorscheme support
         # self.colorscheme = ColorScheme()
 
+    def create_canvas(self, background: str = "white") -> Image.Image:
+        """
+        Create a new blank canvas image for the display
+
+        Common helper to create PIL Image instances with correct dimensions.
+        Simplifies the pattern: Image.new("RGB", (width, height), color)
+
+        Args:
+            background: Background color (default: "white")
+
+        Returns:
+            PIL Image instance sized for this display
+
+        Example:
+            img = self.create_canvas()
+            img = self.create_canvas(background="black")
+        """
+        return Image.new("RGB", (self.display.width, self.display.height), background)
+
     def show_splash(self, message: str, color: str = "black"):
         """
         Display a centered message on the screen
@@ -44,7 +63,7 @@ class Screen(ABC):
             screen.show_splash("Connecting...")
             screen.show_splash("Connection\nFailed", "red")
         """
-        img = Image.new("RGB", (self.display.width, self.display.height), "white")
+        img = self.create_canvas()
         draw = ImageDraw.Draw(img)
 
         font = self.load_font(size=30)

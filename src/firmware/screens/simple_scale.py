@@ -57,7 +57,7 @@ class SimpleScale(InteractiveScreen):
         weight = self.scale.read_weight()
 
         # Create display image
-        img = Image.new("RGB", (self.display.width, self.display.height), "white")
+        img = self.create_canvas()
         draw = ImageDraw.Draw(img)
 
         # Draw weight in center with large font

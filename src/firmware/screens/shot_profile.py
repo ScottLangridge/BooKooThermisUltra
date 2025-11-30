@@ -369,7 +369,7 @@ class ShotProfile(InteractiveScreen):
         self.update_axis_scales()
 
         # Create display image
-        img = Image.new("RGB", (self.display.width, self.display.height), "white")
+        img = self.create_canvas()
         draw = ImageDraw.Draw(img)
 
         # Draw graph axes
