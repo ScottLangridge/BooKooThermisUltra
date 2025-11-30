@@ -1,5 +1,6 @@
 import asyncio
 import time
+import statistics
 
 from bleak import BleakScanner, BleakClient
 
@@ -211,6 +212,49 @@ class BookooScale:
     async def _poll_weight(self):
         await self._client.start_notify(WEIGHT_UUID, self._on_weight)
 
+    def _apply_mean_filter(self, values, window_size):
+        """
+        Apply moving average (mean) filter to a list of values.
+
+        Args:
+            values: List of numeric values to filter
+            window_size: Size of the smoothing window
+
+        Returns:
+            Filtered value (mean of the window centered around the last value)
+        """
+        if not values:
+            return 0.0
+
+        current_idx = len(values) - 1
+        start_idx = max(0, current_idx - window_size // 2)
+        end_idx = min(len(values), current_idx + window_size // 2 + 1)
+
+        window_values = values[start_idx:end_idx]
+        return sum(window_values) / len(window_values)
+
+    def _apply_median_filter(self, values, window_size):
+        """
+        Apply median filter to a list of values.
+        More robust to outliers and spike readings than mean filtering.
+
+        Args:
+            values: List of numeric values to filter
+            window_size: Size of the smoothing window
+
+        Returns:
+            Filtered value (median of the window centered around the last value)
+        """
+        if not values:
+            return 0.0
+
+        current_idx = len(values) - 1
+        start_idx = max(0, current_idx - window_size // 2)
+        end_idx = min(len(values), current_idx + window_size // 2 + 1)
+
+        window_values = values[start_idx:end_idx]
+        return statistics.median(window_values)
+
     def _calculate_flowrate(self):
         """Calculate flowrate (g/s) from weight history with smoothing"""
         if len(self._weight_history) < 2:
@@ -238,18 +282,14 @@ class BookooScale:
             self._flowrate = 0.0
             return
 
-        # Apply moving average smoothing to reduce noise
-        window_size = 5  # Adjust this value for more/less smoothing
-        # Get the most recent flowrate value and smooth it
-        current_idx = len(raw_flowrates) - 1
+        # Apply median filter to reject outliers and spike readings
+        # Window size of 7 (~0.7s at 10Hz) provides good spike rejection
+        # while maintaining responsiveness for espresso shot profiling
+        window_size = 7
+        self._flowrate = self._apply_median_filter(raw_flowrates, window_size)
 
-        # Calculate window boundaries
-        start_idx = max(0, current_idx - window_size // 2)
-        end_idx = min(len(raw_flowrates), current_idx + window_size // 2 + 1)
-
-        # Average flowrate values in window
-        window_values = raw_flowrates[start_idx:end_idx]
-        self._flowrate = sum(window_values) / len(window_values)
+        # Alternative: Use mean filter (less robust to spikes)
+        # self._flowrate = self._apply_mean_filter(raw_flowrates, window_size)
 
     async def _send_command(self, data1, data2, data3, datasum=0x00):
         """Send a 6-byte command to the scale (checksum not required)."""
