@@ -6,12 +6,12 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
-from src.firmware.screens.base_screen import BaseScreen
+from src.firmware.screens.interactive_screen import InteractiveScreen
 from src.drivers.Scale.BookooScale import BookooScale
 from src.drivers.IODevices.IOController import IOController
 
 
-class SimpleScale(BaseScreen):
+class SimpleScale(InteractiveScreen):
     """Simple scale display with timer and tare controls"""
 
     def __init__(self, scale: BookooScale, display: IOController):
@@ -22,22 +22,9 @@ class SimpleScale(BaseScreen):
 
     async def setup(self):
         """Initialize fonts and button callbacks"""
-        print("Starting display loop...")
-
-        # Load fonts for display
-        try:
-            self.weight_font = ImageFont.truetype("arial.ttf", 80)
-            self.hint_font = ImageFont.truetype("arial.ttf", 16)
-        except:
-            try:
-                self.weight_font = ImageFont.truetype("Arial.ttf", 80)
-                self.hint_font = ImageFont.truetype("Arial.ttf", 16)
-            except:
-                self.weight_font = ImageFont.load_default()
-                self.hint_font = ImageFont.load_default()
-
-        # Get reference to the main event loop for cross-thread async calls
-        loop = asyncio.get_event_loop()
+        # Load fonts using inherited load_font() method
+        self.weight_font = self.load_font("arial", 80)
+        self.hint_font = self.load_font("arial", 16)
 
         # Button A: Start/Stop Timer
         async def on_button_a():
@@ -59,13 +46,13 @@ class SimpleScale(BaseScreen):
         async def on_left():
             self.stop()  # Signal to exit and return control
 
-        # Set up button callbacks using run_coroutine_threadsafe for cross-thread async
-        self.display.on_a = lambda: asyncio.run_coroutine_threadsafe(on_button_a(), loop)
-        self.display.on_b = lambda: asyncio.run_coroutine_threadsafe(on_button_b(), loop)
-        self.display.on_left = lambda: asyncio.run_coroutine_threadsafe(on_left(), loop)
+        # Set up button callbacks using inherited bind_button() helper
+        self.bind_button('a', on_button_a)
+        self.bind_button('b', on_button_b)
+        self.bind_button('left', on_left)
 
     async def loop(self):
-        """Main display loop - runs at 10Hz"""
+        """Main display loop"""
         # Get current weight
         weight = self.scale.read_weight()
 
@@ -87,9 +74,6 @@ class SimpleScale(BaseScreen):
 
         # Update display
         self.display.draw(img)
-
-        # Update at 10Hz
-        await asyncio.sleep(0.1)
 
 
 if __name__ == "__main__":

@@ -6,20 +6,16 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
-from src.firmware.screens.base_screen import BaseScreen
+from src.firmware.screens.interactive_screen import InteractiveScreen
 from src.drivers.Scale.BookooScale import BookooScale
 from src.drivers.IODevices.IOController import IOController
 
 
-class ShotProfile(BaseScreen):
+class ShotProfile(InteractiveScreen):
     """Shot profile graphing application"""
 
     def __init__(self, scale: BookooScale, display: IOController):
         super().__init__(scale, display)
-        # Display dimensions
-        self.width = 240
-        self.height = 240
-
         # Layout dimensions
         self.graph_height = 180  # Top section for graph
         self.info_height = 60    # Bottom section for info
@@ -60,37 +56,10 @@ class ShotProfile(BaseScreen):
 
     async def setup(self):
         """Initialize after connection"""
-        print("Starting shot profile...")
-
-        # Load font for info display
-        try:
-            self.info_font = ImageFont.truetype("arial.ttf", 32)
-        except:
-            try:
-                self.info_font = ImageFont.truetype("Arial.ttf", 32)
-            except:
-                self.info_font = ImageFont.load_default()
-
-        # Load smaller font for axis labels
-        try:
-            self.axis_font = ImageFont.truetype("arial.ttf", 14)
-        except:
-            try:
-                self.axis_font = ImageFont.truetype("Arial.ttf", 14)
-            except:
-                self.axis_font = ImageFont.load_default()
-
-        # Load smaller font for label labels
-        try:
-            self.label_font = ImageFont.truetype("arial.ttf", 12)
-        except:
-            try:
-                self.label_font = ImageFont.truetype("Arial.ttf", 12)
-            except:
-                self.label_font = ImageFont.load_default()
-
-        # Get reference to the main event loop for cross-thread async calls
-        loop = asyncio.get_event_loop()
+        # Load fonts using inherited load_font() method
+        self.info_font = self.load_font("arial", 32)
+        self.axis_font = self.load_font("arial", 14)
+        self.label_font = self.load_font("arial", 12)
 
         # Button A: Start/Stop Timer
         async def on_button_a():
@@ -117,10 +86,10 @@ class ShotProfile(BaseScreen):
         async def on_left():
             self.stop()  # Signal to exit and return control
 
-        # Set up button callbacks using run_coroutine_threadsafe for cross-thread async
-        self.display.on_a = lambda: asyncio.run_coroutine_threadsafe(on_button_a(), loop)
-        self.display.on_b = lambda: asyncio.run_coroutine_threadsafe(on_button_b(), loop)
-        self.display.on_left = lambda: asyncio.run_coroutine_threadsafe(on_left(), loop)
+        # Set up button callbacks using inherited bind_button() helper
+        self.bind_button('a', on_button_a)
+        self.bind_button('b', on_button_b)
+        self.bind_button('left', on_left)
 
     def calculate_ticks(self, min_val, max_val, target_ticks=5):
         tick_step = 1
@@ -414,8 +383,6 @@ class ShotProfile(BaseScreen):
 
         # Update display
         self.display.draw(img)
-
-        await asyncio.sleep(0.1)
 
 
 if __name__ == "__main__":

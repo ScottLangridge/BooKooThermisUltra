@@ -7,13 +7,13 @@ from math import ceil
 sys.path.append(str(Path(__file__).parent.parent))
 
 from PIL import Image, ImageDraw, ImageFont
-from src.firmware.screens.base_screen import BaseScreen
+from src.firmware.screens.interactive_screen import InteractiveScreen
 from src.firmware.screens.menu.menu_option import MenuOption
 from src.drivers.Scale.BookooScale import BookooScale
 from src.drivers.IODevices.IOController import IOController
 
 
-class MenuScreen(BaseScreen):
+class MenuScreen(InteractiveScreen):
     """Main menu firmware that handles rendering and navigation"""
 
     def __init__(self, scale: BookooScale, display: IOController,
@@ -31,7 +31,7 @@ class MenuScreen(BaseScreen):
             header_height: Fixed height for title section (default: 40)
             footer_height: Fixed height for page indicator (default: 40)
         """
-        super().__init__(scale, display)
+        super().__init__(scale, display, refresh_rate=0.05)  # 20Hz for menu
 
         # Configuration
         self.title = title
@@ -39,10 +39,6 @@ class MenuScreen(BaseScreen):
         self.items_per_page = items_per_page
         self.header_height = header_height
         self.footer_height = footer_height
-
-        # Display dimensions
-        self.width = 240
-        self.height = 240
 
         # State
         self.current_index = 0
@@ -54,15 +50,6 @@ class MenuScreen(BaseScreen):
         self.option_font = None
         self.footer_font = None
 
-        # Layout (calculated)
-        self.menu_area_height = 0
-        self.row_height = 0
-
-        # Calculate initial layout
-        self.calculate_layout()
-
-    def calculate_layout(self):
-        """Compute row heights and prepare for font sizing"""
         # Available space for menu items
         self.menu_area_height = self.height - self.header_height - self.footer_height
 
@@ -172,41 +159,18 @@ class MenuScreen(BaseScreen):
 
     async def setup(self):
         """Configure button handlers for up/down navigation"""
-        print("Starting menu...")
-
-        # Load fonts with fallbacks
+        # Load fonts using inherited load_font() method
         # Title font (based on header height)
         title_size = int(self.header_height * 0.6)
-        try:
-            self.title_font = ImageFont.truetype("arial.ttf", title_size)
-        except:
-            try:
-                self.title_font = ImageFont.truetype("Arial.ttf", title_size)
-            except:
-                self.title_font = ImageFont.load_default()
+        self.title_font = self.load_font("arial", title_size)
 
         # Option font (based on row height)
         option_size = int(self.row_height * 0.6)
-        try:
-            self.option_font = ImageFont.truetype("arial.ttf", option_size)
-        except:
-            try:
-                self.option_font = ImageFont.truetype("Arial.ttf", option_size)
-            except:
-                self.option_font = ImageFont.load_default()
+        self.option_font = self.load_font("arial", option_size)
 
         # Footer font (based on footer height)
         footer_size = int(self.footer_height * 0.4)
-        try:
-            self.footer_font = ImageFont.truetype("arial.ttf", footer_size)
-        except:
-            try:
-                self.footer_font = ImageFont.truetype("Arial.ttf", footer_size)
-            except:
-                self.footer_font = ImageFont.load_default()
-
-        # Get reference to the main event loop for cross-thread async calls
-        loop = asyncio.get_event_loop()
+        self.footer_font = self.load_font("arial", footer_size)
 
         # Navigation callbacks
         async def on_up():
@@ -223,11 +187,11 @@ class MenuScreen(BaseScreen):
                 # Execute the callback if present
                 await selected_option.execute()
 
-        # Register button handlers
-        self.display.on_up = lambda: asyncio.run_coroutine_threadsafe(on_up(), loop)
-        self.display.on_down = lambda: asyncio.run_coroutine_threadsafe(on_down(), loop)
-        self.display.on_center = lambda: asyncio.run_coroutine_threadsafe(on_select(), loop)
-        self.display.on_right = lambda: asyncio.run_coroutine_threadsafe(on_select(), loop)
+        # Register button handlers using inherited bind_button() helper
+        self.bind_button('up', on_up)
+        self.bind_button('down', on_down)
+        self.bind_button('center', on_select)
+        self.bind_button('right', on_select)
 
     async def loop(self):
         """Main render loop"""
@@ -242,6 +206,3 @@ class MenuScreen(BaseScreen):
 
         # Update display
         self.display.draw(img)
-
-        # Refresh rate (can be slower than shot_profile since no live data)
-        await asyncio.sleep(0.05)  # 20Hz

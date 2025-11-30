@@ -18,16 +18,26 @@ Claude has permanent access to the Obsidian vault folder for this project:
 
 **CRITICAL: This project runs on Windows but uses a Unix shell (Git Bash/WSL)**
 
-When interacting with files and paths:
+### File Operations (Read, Edit, Write, Glob, Grep)
+
+**ALWAYS use complete absolute Windows paths with backslashes for ALL file operations:**
+- ✅ `C:\Users\scott\PycharmProjects\SmartScaleIntegration\src\drivers\Scale\BookooScale.py`
+- ❌ `C:/Users/scott/PycharmProjects/SmartScaleIntegration/src/drivers/Scale/BookooScale.py` (will cause file modification bugs)
+- ❌ `src\drivers\Scale\BookooScale.py` (relative paths may fail)
+
+This is required due to a Claude Code file handling bug. Always use full absolute paths with drive letters (C:\) and backslashes (\).
+
+### Bash Commands
+
+When using the Bash tool:
 - The Bash tool runs a Unix shell, NOT Windows cmd/PowerShell
 - ALWAYS use Unix-style commands: `ls`, `find`, `rm`, `rmdir`, etc. (NOT `dir`, `del`)
 - ALWAYS use forward slashes in paths: `src/drivers/Scale/BookooScale.py`
 - Backslashes in paths may appear in output but use forward slashes in commands
-- Prefer platform-agnostic tools when possible: Glob, Grep, Read, Edit, Write
 - Only use Bash for operations that require shell execution (git, python, pytest, etc.)
 
-**Examples of correct path usage:**
-- ✅ `find src -type f -name "*.py"` (Unix command)
+**Examples of correct Bash usage:**
+- ✅ `find src -type f -name "*.py"` (Unix command with forward slashes)
 - ✅ `rm -r examples/old` (Unix command)
 - ✅ `git mv src/old/file.py src/new/file.py` (forward slashes)
 - ❌ `dir /B src\drivers` (Windows command - will fail)
@@ -172,14 +182,46 @@ Central orchestrator for application flow and screen transitions.
 **Hardware singleton pattern:**
 Hardware is created once in `__init__` and passed to all screens via dependency injection. Screens never create their own hardware instances.
 
-#### BaseScreen (`src/firmware/screens/base_screen.py`)
+#### Screen (`src/firmware/screens/screen.py`)
 
-Async base class providing common functionality for all screen applications.
+Abstract base class for ALL screen types, providing common properties and utilities.
+
+**Constructor signature:**
+```python
+def __init__(self, display: IOController)
+```
+
+**Properties:**
+- `display`: IOController instance for rendering
+- `width`: Display width in pixels (default: 240)
+- `height`: Display height in pixels (default: 240)
+
+**Utility methods:**
+- `show_splash(message, color="black")`: Display centered text message (supports multi-line with `\n`)
+- `load_font(font_name="arial", size=30)`: Load a TrueType font with automatic fallback
+
+**Inheritance hierarchy:**
+```
+Screen (ABC)
+├── ConnectionScreen - Connection-specific lifecycle
+└── InteractiveScreen - Interactive application lifecycle
+    ├── SimpleScale
+    ├── ShotProfile
+    └── MenuScreen
+```
+
+#### InteractiveScreen (`src/firmware/screens/interactive_screen.py`)
+
+Abstract base class for interactive screens with setup/loop/stop lifecycle. Inherits from Screen.
 
 **Constructor signature:**
 ```python
 def __init__(self, scale: BookooScale, display: IOController)
 ```
+
+**Additional properties (beyond Screen):**
+- `scale`: Connected BookooScale instance
+- `running`: Boolean flag for lifecycle control
 
 **Lifecycle methods:**
 - `setup()`: Override to initialize screen-specific resources (fonts, button callbacks, etc.)
@@ -187,14 +229,14 @@ def __init__(self, scale: BookooScale, display: IOController)
 - `run()`: Framework method that calls `setup()`, then loops `loop()` until `running=False`
 - `stop()`: Call this to signal the screen should exit and return control to ScreenManager
 
-**Utility methods:**
-- `show_splash(message, color="black")`: Display centered text message (supports multi-line with `\n`)
-
 **Screen lifecycle pattern:**
 ```python
-class MyScreen(BaseScreen):
+class MyScreen(InteractiveScreen):
     async def setup(self):
-        # Initialize fonts, button callbacks, state
+        # Load fonts using inherited method
+        self.font = self.load_font("arial", 80)
+
+        # Initialize button callbacks
         loop = asyncio.get_event_loop()
         self.display.on_left = lambda: asyncio.run_coroutine_threadsafe(self.on_left(), loop)
 
@@ -209,10 +251,15 @@ class MyScreen(BaseScreen):
 
 #### ConnectionScreen (`src/firmware/screens/connection_screen.py`)
 
-Dedicated screen for scale connection with visual feedback.
+Dedicated screen for scale connection with visual feedback. Inherits from Screen.
+
+**Constructor signature:**
+```python
+def __init__(self, display: IOController, scale: BookooScale)
+```
 
 **Key characteristics:**
-- Not a subclass of BaseScreen (has different lifecycle)
+- Different lifecycle from InteractiveScreen (connection vs interactive)
 - Shows "Connecting...", "Connected!", or "Connection Failed" splash screens
 - Infinite retry loop until connection succeeds
 - `run_until_connected()`: Blocks until scale connection established
@@ -437,7 +484,8 @@ src/
 └── firmware/
     ├── main.py                        # Application entry point
     └── screens/                       # Screen framework and applications
-        ├── base_screen.py             # Base class for all screens
+        ├── screen.py                  # Abstract base class for ALL screens
+        ├── interactive_screen.py      # Base class for interactive screens
         ├── connection_screen.py       # Scale connection handler
         ├── screen_manager.py          # Central orchestrator
         ├── simple_scale.py            # Basic scale screen
@@ -453,12 +501,15 @@ examples/                       # Standalone MVP examples (not used in main app)
 
 To add a new screen application:
 
-1. **Create screen class** inheriting from `BaseScreen`:
+1. **Create screen class** inheriting from `InteractiveScreen`:
 ```python
-from src.firmware.screens.base_screen import BaseScreen
+from src.firmware.screens.interactive_screen import InteractiveScreen
 
-class MyScreen(BaseScreen):
+class MyScreen(InteractiveScreen):
     async def setup(self):
+        # Load fonts using inherited method
+        self.font = self.load_font("arial", 40)
+
         # Initialize resources, setup button callbacks
         loop = asyncio.get_event_loop()
         self.display.on_left = lambda: asyncio.run_coroutine_threadsafe(
