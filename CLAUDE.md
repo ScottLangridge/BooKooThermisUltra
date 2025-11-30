@@ -54,8 +54,8 @@ All applications should be run from the project root directory. The code uses `s
 python -m src.firmware.main
 
 # Run individual screens for testing (bypasses menu)
-python -m src.firmware.screens.simple_scale
-python -m src.firmware.screens.shot_profile
+python -m src.firmware.apps.simple_scale
+python -m src.firmware.apps.shot_profile
 
 # Alternative: Set PYTHONPATH manually (if needed)
 # On Windows Git Bash/WSL:
@@ -109,7 +109,8 @@ Bluetooth Low Energy (BLE) driver for BooKoo scales using the bleak library.
 **Flowrate calculation:**
 - Maintains rolling history of last 50 weight measurements (~5 seconds at 10Hz)
 - Calculates instantaneous flowrate between consecutive measurements
-- Applies moving average smoothing (window size: 5) to reduce noise
+- Applies median filter smoothing (window size: 7) to reject outliers and spike readings
+- More robust than mean filtering for espresso shot profiling
 - Returns flowrate in grams per second (g/s)
 
 **Async methods:**
@@ -193,10 +194,9 @@ def __init__(self, display: IOController)
 
 **Properties:**
 - `display`: IOController instance for rendering
-- `width`: Display width in pixels (default: 240)
-- `height`: Display height in pixels (default: 240)
 
 **Utility methods:**
+- `create_canvas(background="white")`: Create a new blank PIL Image sized for the display (240x240)
 - `show_splash(message, color="black")`: Display centered text message (supports multi-line with `\n`)
 - `load_font(font_name="arial", size=30)`: Load a TrueType font with automatic fallback
 
@@ -216,18 +216,23 @@ Abstract base class for interactive screens with setup/loop/stop lifecycle. Inhe
 
 **Constructor signature:**
 ```python
-def __init__(self, scale: BookooScale, display: IOController)
+def __init__(self, scale: BookooScale, display: IOController, refresh_rate: float = 0.1)
 ```
 
 **Additional properties (beyond Screen):**
 - `scale`: Connected BookooScale instance
 - `running`: Boolean flag for lifecycle control
+- `refresh_rate`: Update frequency in seconds (default: 0.1 = 10Hz)
+- `event_loop`: Event loop reference (automatically set by framework)
 
 **Lifecycle methods:**
 - `setup()`: Override to initialize screen-specific resources (fonts, button callbacks, etc.)
 - `loop()`: Override to implement main application loop (called repeatedly until `stop()`)
 - `run()`: Framework method that calls `setup()`, then loops `loop()` until `running=False`
 - `stop()`: Call this to signal the screen should exit and return control to ScreenManager
+
+**Helper methods:**
+- `bind_button(button_name, async_callback)`: Safely bind an async callback to a button (handles threading complexity)
 
 **Screen lifecycle pattern:**
 ```python
@@ -236,17 +241,20 @@ class MyScreen(InteractiveScreen):
         # Load fonts using inherited method
         self.font = self.load_font("arial", 80)
 
-        # Initialize button callbacks
-        loop = asyncio.get_event_loop()
-        self.display.on_left = lambda: asyncio.run_coroutine_threadsafe(self.on_left(), loop)
+        # Initialize button callbacks using bind_button helper
+        self.bind_button('left', self.on_left)
+        self.bind_button('a', self.on_button_a)
 
     async def loop(self):
         # Main application logic, runs repeatedly
         # Draw to display, read from scale, etc.
-        await asyncio.sleep(0.1)  # Control update rate
+        # NOTE: Do NOT include await asyncio.sleep() - the framework handles this automatically
 
     async def on_left(self):
         self.stop()  # Return control to ScreenManager
+
+    async def on_button_a(self):
+        await self.scale.send_tare()
 ```
 
 #### ConnectionScreen (`src/firmware/screens/connection_screen.py`)
@@ -315,11 +323,11 @@ MenuOption("Label", callback=select_option)
 MenuOption("Reconnect", callback=reconnect)
 ```
 
-### Layer 3: Application Layer (`src/firmware/screens/`)
+### Layer 3: Application Layer (`src/firmware/apps/`)
 
 User-facing screen applications.
 
-#### SimpleScale (`src/firmware/screens/simple_scale.py`)
+#### SimpleScale (`src/firmware/apps/simple_scale.py`)
 
 Basic weight display with timer controls.
 
@@ -330,9 +338,9 @@ Basic weight display with timer controls.
 - B button: tare
 - LEFT button: return to menu
 
-**Update rate:** 10Hz (0.1s sleep in loop)
+**Update rate:** 10Hz (controlled by refresh_rate parameter, default: 0.1s)
 
-#### ShotProfile (`src/firmware/screens/shot_profile.py`)
+#### ShotProfile (`src/firmware/apps/shot_profile.py`)
 
 Espresso shot profiling with dual-axis real-time graphing.
 
@@ -344,7 +352,7 @@ Espresso shot profiling with dual-axis real-time graphing.
 - B button: reset timer and clear graph data
 - LEFT button: return to menu
 
-**Update rate:** 10Hz (0.1s sleep in loop)
+**Update rate:** 10Hz (controlled by refresh_rate parameter, default: 0.1s)
 
 **Graph layout:**
 - Graph area: 240x180 pixels (top section)
@@ -376,8 +384,12 @@ Screens don't know about ScreenManager. They call `self.stop()` to signal they'r
 - Each screen focuses only on its display/interaction logic
 
 ### Cross-Thread Event Handling
-Flask button callbacks run in different thread than asyncio event loop. Bridge with `asyncio.run_coroutine_threadsafe()`:
+Flask button callbacks run in different thread than asyncio event loop. Use the `bind_button()` helper method to handle this automatically:
 ```python
+# Recommended approach (using bind_button helper):
+self.bind_button('a', self.on_button_a)
+
+# Manual approach (if needed for custom scenarios):
 loop = asyncio.get_event_loop()
 async def async_handler():
     await self.scale.send_tare()
@@ -444,7 +456,7 @@ Scale weight data includes:
 - 24-bit raw value (bytes 7-9) divided by 100 for grams
 
 ### Button Event Threading
-Button callbacks execute in Flask's thread (not asyncio event loop). Always use `asyncio.run_coroutine_threadsafe()` for async operations triggered by buttons.
+Button callbacks execute in Flask's thread (not asyncio event loop). Use `bind_button()` helper method to automatically handle threading complexity. For custom scenarios, use `asyncio.run_coroutine_threadsafe()`.
 
 ### Menu Callback Pattern
 Menu callbacks typically:
@@ -483,13 +495,14 @@ src/
 │
 └── firmware/
     ├── main.py                        # Application entry point
-    └── screens/                       # Screen framework and applications
+    ├── apps/                          # Application screens
+    │   ├── simple_scale.py            # Basic scale screen
+    │   └── shot_profile.py            # Shot profiling screen
+    └── screens/                       # Screen framework
         ├── screen.py                  # Abstract base class for ALL screens
         ├── interactive_screen.py      # Base class for interactive screens
         ├── connection_screen.py       # Scale connection handler
         ├── screen_manager.py          # Central orchestrator
-        ├── simple_scale.py            # Basic scale screen
-        ├── shot_profile.py            # Shot profiling screen
         └── menu/
             ├── menu_screen.py         # Generic menu renderer
             └── menu_option.py         # Menu item representation
@@ -504,29 +517,40 @@ To add a new screen application:
 1. **Create screen class** inheriting from `InteractiveScreen`:
 ```python
 from src.firmware.screens.interactive_screen import InteractiveScreen
+from PIL import Image, ImageDraw
 
 class MyScreen(InteractiveScreen):
     async def setup(self):
         # Load fonts using inherited method
         self.font = self.load_font("arial", 40)
 
-        # Initialize resources, setup button callbacks
-        loop = asyncio.get_event_loop()
-        self.display.on_left = lambda: asyncio.run_coroutine_threadsafe(
-            self.on_left(), loop
-        )
+        # Initialize button callbacks using bind_button helper
+        self.bind_button('left', self.on_left)
+        self.bind_button('a', self.on_button_a)
 
     async def loop(self):
         # Main application logic
-        await asyncio.sleep(0.1)
+        # Create canvas using helper method
+        img = self.create_canvas()
+        draw = ImageDraw.Draw(img)
+
+        # Draw your UI
+        weight = self.scale.read_weight()
+        draw.text((120, 120), f"{weight:.1f}g", fill="black", anchor="mm", font=self.font)
+
+        self.display.draw(img)
+        # NOTE: Do NOT include await asyncio.sleep() - handled by framework
 
     async def on_left(self):
         self.stop()  # Return to menu
+
+    async def on_button_a(self):
+        await self.scale.send_tare()
 ```
 
 2. **Register in ScreenManager** (`src/firmware/screens/screen_manager.py`):
 ```python
-from src.firmware.screens.my_screen import MyScreen
+from src.firmware.apps.my_screen import MyScreen
 
 # In show_menu():
 def select_my_screen():
@@ -561,4 +585,4 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-Then run: `python -m src.firmware.screens.my_screen`
+Then run: `python -m src.firmware.apps.my_screen`
