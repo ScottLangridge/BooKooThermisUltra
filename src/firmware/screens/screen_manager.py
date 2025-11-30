@@ -59,8 +59,8 @@ class ScreenManager:
         """
         from src.firmware.screens.menu.menu_screen import MenuScreen
         from src.firmware.screens.menu.menu_option import MenuOption
-        from src.firmware.screens.simple_scale import SimpleScale
-        from src.firmware.screens.shot_profile import ShotProfile
+        from src.firmware.apps.simple_scale import SimpleScale
+        from src.firmware.apps.shot_profile import ShotProfile
 
         # Reset selection
         self.selected_screen = None
