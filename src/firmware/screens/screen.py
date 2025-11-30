@@ -25,8 +25,6 @@ class Screen(ABC):
             display: IOController instance for rendering to hardware
         """
         self.display = display
-        self.width = 240
-        self.height = 240
 
         # Future: Colorscheme support
         # self.colorscheme = ColorScheme()
@@ -46,7 +44,7 @@ class Screen(ABC):
             screen.show_splash("Connecting...")
             screen.show_splash("Connection\nFailed", "red")
         """
-        img = Image.new("RGB", (self.width, self.height), "white")
+        img = Image.new("RGB", (self.display.width, self.display.height), "white")
         draw = ImageDraw.Draw(img)
 
         font = self.load_font(size=30)
@@ -54,12 +52,12 @@ class Screen(ABC):
         # Split message into lines for multi-line support
         lines = message.split('\n')
         line_height = 70
-        start_y = 120 - (len(lines) - 1) * line_height / 2
+        start_y = (self.display.height // 2) - (len(lines) - 1) * line_height / 2
 
         for i, line in enumerate(lines):
             y_pos = start_y + i * line_height
             draw.text(
-                (120, y_pos),
+                (self.display.width // 2, y_pos),
                 line,
                 fill=color,
                 anchor="mm",

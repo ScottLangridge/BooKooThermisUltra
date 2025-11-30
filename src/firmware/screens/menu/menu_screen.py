@@ -50,11 +50,9 @@ class MenuScreen(InteractiveScreen):
         self.option_font = None
         self.footer_font = None
 
-        # Available space for menu items
-        self.menu_area_height = self.height - self.header_height - self.footer_height
-
-        # Fixed row height based on items_per_page
-        self.row_height = self.menu_area_height // self.items_per_page
+        # Available space for menu items (calculated in setup when display is available)
+        self.menu_area_height = None
+        self.row_height = None
 
     def move_up(self):
         """Move highlight up, handle paging"""
@@ -79,11 +77,11 @@ class MenuScreen(InteractiveScreen):
     def draw_header(self, draw):
         """Render title section"""
         # Fill header background (white)
-        draw.rectangle([(0, 0), (self.width, self.header_height)], fill="white")
+        draw.rectangle([(0, 0), (self.display.width, self.header_height)], fill="white")
 
         # Draw title text (centered)
         draw.text(
-            (self.width // 2, self.header_height // 2),
+            (self.display.width // 2, self.header_height // 2),
             self.title,
             fill="black",
             anchor="mm",
@@ -92,12 +90,12 @@ class MenuScreen(InteractiveScreen):
 
     def draw_footer(self, draw):
         """Render page indicator"""
-        footer_y = self.height - self.footer_height
+        footer_y = self.display.height - self.footer_height
 
         # Draw page indicator (centered)
         page_text = f"page {self.current_page + 1}/{self.total_pages}"
         draw.text(
-            (self.width // 2, footer_y + self.footer_height // 2),
+            (self.display.width // 2, footer_y + self.footer_height // 2),
             page_text,
             fill="black",
             anchor="mm",
@@ -112,7 +110,7 @@ class MenuScreen(InteractiveScreen):
 
         # Draw background
         draw.rectangle(
-            [(0, y_position), (self.width, y_position + self.row_height)],
+            [(0, y_position), (self.display.width, y_position + self.row_height)],
             fill=bg_color
         )
 
@@ -127,7 +125,7 @@ class MenuScreen(InteractiveScreen):
 
         # Draw icon (right-aligned with padding)
         draw.text(
-            (self.width - 10, y_position + self.row_height // 2),
+            (self.display.width - 10, y_position + self.row_height // 2),
             option.icon,
             fill=text_color,
             anchor="rm",
@@ -140,7 +138,7 @@ class MenuScreen(InteractiveScreen):
             # Handle empty options list
             y_center = self.header_height + self.menu_area_height // 2
             draw.text(
-                (self.width // 2, y_center),
+                (self.display.width // 2, y_center),
                 "No options available",
                 fill="black",
                 anchor="mm",
@@ -159,6 +157,10 @@ class MenuScreen(InteractiveScreen):
 
     async def setup(self):
         """Configure button handlers for up/down navigation"""
+        # Calculate layout dimensions now that display is available
+        self.menu_area_height = self.display.height - self.header_height - self.footer_height
+        self.row_height = self.menu_area_height // self.items_per_page
+
         # Load fonts using inherited load_font() method
         # Title font (based on header height)
         title_size = int(self.header_height * 0.6)
@@ -196,7 +198,7 @@ class MenuScreen(InteractiveScreen):
     async def loop(self):
         """Main render loop"""
         # Create display image
-        img = Image.new("RGB", (self.width, self.height), "white")
+        img = Image.new("RGB", (self.display.width, self.display.height), "white")
         draw = ImageDraw.Draw(img)
 
         # Render all sections

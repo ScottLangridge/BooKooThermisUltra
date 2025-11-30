@@ -28,7 +28,7 @@ class ShotProfile(InteractiveScreen):
 
         self.graph_x = self.graph_padding_left
         self.graph_y = self.graph_padding_top
-        self.graph_w = self.width - self.graph_padding_left - self.graph_padding_right
+        self.graph_w = None  # Will be set in setup() when display is available
         self.graph_h = self.graph_height - self.graph_padding_top - self.graph_padding_bottom
 
         # Fonts
@@ -56,6 +56,9 @@ class ShotProfile(InteractiveScreen):
 
     async def setup(self):
         """Initialize after connection"""
+        # Calculate graph width now that display is available
+        self.graph_w = self.display.width - self.graph_padding_left - self.graph_padding_right
+
         # Load fonts using inherited load_font() method
         self.info_font = self.load_font("arial", 32)
         self.axis_font = self.load_font("arial", 14)
@@ -281,18 +284,18 @@ class ShotProfile(InteractiveScreen):
     def draw_info_section(self, draw):
         """Draw the bottom info section with three boxes"""
         info_y = self.graph_height
-        box_width = self.width // 3
+        box_width = self.display.width // 3
 
         # Draw dividing lines
         # Horizontal line separating graph from info
-        draw.line([(0, info_y), (self.width, info_y)], fill="black", width=2)
+        draw.line([(0, info_y), (self.display.width, info_y)], fill="black", width=2)
 
         # Vertical lines dividing the three info boxes
-        draw.line([(box_width, info_y), (box_width, self.height)], fill="black", width=2)
-        draw.line([(box_width * 2, info_y), (box_width * 2, self.height)], fill="black", width=2)
+        draw.line([(box_width, info_y), (box_width, self.display.height)], fill="black", width=2)
+        draw.line([(box_width * 2, info_y), (box_width * 2, self.display.height)], fill="black", width=2)
 
         # Draw border around whole display
-        draw.rectangle([(0, 0), (self.width-1, self.height-1)], outline="black", width=2)
+        draw.rectangle([(0, 0), (self.display.width-1, self.display.height-1)], outline="black", width=2)
 
         # Get values from scale
         timer_seconds = self.scale.read_time()
@@ -366,7 +369,7 @@ class ShotProfile(InteractiveScreen):
         self.update_axis_scales()
 
         # Create display image
-        img = Image.new("RGB", (self.width, self.height), "white")
+        img = Image.new("RGB", (self.display.width, self.display.height), "white")
         draw = ImageDraw.Draw(img)
 
         # Draw graph axes

@@ -9,6 +9,10 @@ class IOController(ABC):
     """
 
     def __init__(self):
+        # Display dimensions
+        self.width = 240
+        self.height = 240
+
         # Button event callbacks
         self.on_up = lambda: None
         self.on_down = lambda: None

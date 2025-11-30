@@ -20,7 +20,7 @@ class VirtualIOController(IOController):
         self.port = port
 
         # Internal state
-        self._current_image = Image.new("RGB", (240, 240), "white")
+        self._current_image = Image.new("RGB", (self.width, self.height), "white")
 
         # Setup Flask routes
         self._setup_routes()
@@ -37,10 +37,10 @@ class VirtualIOController(IOController):
         Display an image on the virtual device.
 
         Args:
-            img: PIL Image object, must be 240x240 pixels
+            img: PIL Image object, must match display dimensions
         """
-        if img.size != (240, 240):
-            raise ValueError("Image must be 240x240 pixels")
+        if img.size != (self.width, self.height):
+            raise ValueError(f"Image must be {self.width}x{self.height} pixels")
         self._current_image = img.copy()
 
     def _setup_routes(self):
